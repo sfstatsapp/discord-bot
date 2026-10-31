@@ -168,19 +168,6 @@ def parse_stats_intent(
     jump_normal_move_query = _query_has_jump_normal_move_intent(text_lower)
     directional_normal_move_query = query_has_directional_normal_notation(text_lower)
     grounded_normal_move_query = query_has_grounded_normal_notation(text_lower)
-    explicit_health_query = any(
-        _phrase_in_text(normalized_stat_text, phrase)
-        for phrase in ("health", "life bar", "life")
-    )
-    move_overrides_hp_alias = bool(
-        move_results_found
-        and explicit_move_attempt
-        and not broad_stats
-        and not explicit_health_query
-        and _phrase_in_text(text_lower, "hp")
-    )
-    if move_overrides_hp_alias and phrase_keys:
-        phrase_keys = tuple(key for key in phrase_keys if key != "health")
     if charge_button_query and phrase_keys:
         phrase_keys = tuple(key for key in phrase_keys if key != "health")
     if air_throw_move_query and phrase_keys:

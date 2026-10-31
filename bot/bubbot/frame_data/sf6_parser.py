@@ -23,6 +23,7 @@ from bubbot.frame_data.sf6_character_aliases import (
     should_skip_keyword_input,
 )
 from bubbot.frame_data.sf6_character_stats import apply_stats_context, match_stat_keys_in_text
+from bubbot.frame_data.sf6_stance import apply_stance_rows
 from bubbot.frame_data.sf6_parser_helpers import collect_normal_notation_inputs
 from bubbot.frame_data.sf6_parser_helpers import normalize_button_word_notation
 from bubbot.frame_data.sf6_parser_helpers import normalize_charge_button_notation
@@ -689,25 +690,6 @@ def find_moves_in_text(deps, text):
             re.search(r"\bborscht\b", text_lower)
             or re.search(r"\bj\.?\s*360\s*\+?\s*k{1,2}\b", text_lower)
             or re.search(r"\bj\s+360\s*\+?\s*k{1,2}\b", text_lower)
-        )
-        alex_stance_followup_context = bool(
-            re.search(
-                r"\bstance\s+(?:lp|mp|hp|lk|mk|hk|6p|6|4|lplk|5lplk|2lplk|"
-                r"jab|shoulder|lariat|hop|stomp|throw|command\s+grab|hk\s+hk)\b",
-                text_lower,
-            )
-        )
-        chun_stance_followup_context = bool(
-            re.search(
-                r"\b(?:stance|ss|serenity\s+stream|214p)\s+"
-                r"(?:lp|mp|hp|lk|mk|hk|"
-                r"(?:light|medium|heavy|l|m|h)\s+(?:punch|kick))\b"
-                r"|\b214p\s*(?:>|\+)?\s*"
-                r"(?:lp|mp|hp|lk|mk|hk|"
-                r"(?:light|medium|heavy|l|m|h)\s+(?:punch|kick))\b"
-                r"|\b(?:stance|ss)\s+(?:light|medium|heavy|l|m|h)\s+(?:punch|kick)\b",
-                text_lower,
-            )
         )
         air_sa3_context = bool(
             re.search(
@@ -1569,10 +1551,7 @@ def find_moves_in_text(deps, text):
             normalize_char_name=normalize_char_name,
             lookup_frame_data=lookup_frame_data,
             row_is_ca_variant=row_is_ca_variant,
-            alex_stance_followup_context=alex_stance_followup_context,
             cammy_hooligan_followup_context=cammy_hooligan_followup_context,
-            chun_stance_followup_context=chun_stance_followup_context,
-            normalize_num_cmd_token=normalize_num_cmd_token,
         )
 
         if query_requests_ca and results:
@@ -1772,6 +1751,20 @@ def find_moves_in_text(deps, text):
             elif tc_prompt_blocks:
                 results = []
 
+    # A stance or run named in the query ("aki stance hk", "marisa stance grab", "kimberly run mk") is answered
+    # from the sheet's "<starter> > <follow-up>" rows, over any other reading of its words or prompt.
+    if mentioned_chars:
+        results, every_char_named_a_stance = apply_stance_rows(
+            text_lower,
+            mentioned_chars,
+            results,
+            FRAME_DATA,
+            find_characters=lambda part: find_fuzzy_aliases_in_text(part, CHARACTER_ALIASES, FRAME_DATA.keys()),
+        )
+        if every_char_named_a_stance:
+            tc_prompt_blocks = []
+            special_prompt_blocks = []
+
     if not wants_comparison:
         results = prefer_grounded_rows(results, text_lower)
 
@@ -1791,7 +1784,7 @@ def find_moves_in_text(deps, text):
         property_only_query=property_only_query,
         startup_alias_query=startup_alias_query,
         charge_button_query=charge_button_query,
-        # A target combo's options are moves too: "hp" in "5HP > HP" is a button, not health.
+        # A target combo's options are moves too, so "5HP > HP" never falls back to the stats panel.
         move_results_found=bool(results or tc_prompt_blocks),
     )
     wants_stats = stats_intent.wants_stats

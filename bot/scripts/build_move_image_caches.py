@@ -115,9 +115,33 @@ def _supercombo_segment(segment: str, airborne: bool, after_jump: bool) -> tuple
     return ("j." if air else "") + segment, air
 
 
+def _sf6_spellings(text: str) -> list[str]:
+    """Other ways SuperCombo writes a FAT input: '2PP > 5K' is 2PP~K, '5KK' is KK, '4268LP' is 360+LP,
+    '624LK' is 63214LK, '(proximity)' is '(close)', and '6 or 3KKK' is listed as 6KKK."""
+    spellings = [
+        re.sub(r">\s*5(?=[PK]\b)", "> ", text),
+        re.sub(r"^5(?=(?:[LMH]?[PK])+\b)", "", text),
+        re.sub(r"^4268", "360+", text),
+        re.sub(r"^624", "63214", text),
+        text.replace("(proximity)", "(close)"),
+    ]
+    either = re.fullmatch(r"([1-9])\s*or\s*([1-9])(\D\S*)", text)
+    if either:
+        spellings += [f"{either[1]}{either[3]}", f"{either[2]}{either[3]}"]
+    return [spelling for spelling in dict.fromkeys(spellings) if spelling != text]
+
+
 def sf6_fat_input_keys(num_cmd: object) -> list[str]:
-    """SuperCombo input keys for a FAT numCmd, best first: as written, then in SuperCombo's notation."""
+    """SuperCombo input keys for a FAT numCmd, best first: as written, then in SuperCombo's notation, then
+    for each of SuperCombo's other spellings of it."""
     text = str(num_cmd or "").strip()
+    keys = _sf6_notation_keys(text)
+    for spelling in _sf6_spellings(text):
+        keys += _sf6_notation_keys(spelling)
+    return list(dict.fromkeys(key for key in keys if key))
+
+
+def _sf6_notation_keys(text: str) -> list[str]:
     keys = [sf6_input_key(text)]
     either = re.fullmatch(r"([1-9])\s*or\s*([1-9])(\D\S*)", text)
     if either:
@@ -135,7 +159,7 @@ def sf6_fat_input_keys(num_cmd: object) -> list[str]:
         # SuperCombo writes follow-ups without the neutral 5 ("5MP~MK"), sometimes without a repeated j.
         keys.append(sf6_input_key("~".join([segments[0]] + [re.sub(r"^(j\.)?5(?=[LMH][PK]|\[)", r"\1", s) for s in segments[1:]])))
         keys.append(sf6_input_key("~".join([segments[0]] + [re.sub(r"^j\.", "", s) for s in segments[1:]])))
-    return list(dict.fromkeys(key for key in keys if key))
+    return keys
 
 
 def _sf6_base_name(name: object) -> str:

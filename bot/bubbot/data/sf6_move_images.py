@@ -102,6 +102,13 @@ SF6_HITBOX_IMAGE_URLS = {
     "2PP": [
       "https://wiki.supercombo.gg/images/thumb/c/ce/SF6_A.K.I._2pp_hitbox.png/400px-SF6_A.K.I._2pp_hitbox.png"
     ],
+    "2PP > 5K": [
+      "https://wiki.supercombo.gg/images/thumb/a/a0/SF6_A.K.I._2pp_k_hitbox.png/400px-SF6_A.K.I._2pp_k_hitbox.png",
+      "https://wiki.supercombo.gg/images/thumb/6/6c/SF6_A.K.I._2pp_k_hitbox2.png/400px-SF6_A.K.I._2pp_k_hitbox2.png"
+    ],
+    "2PP > 5P": [
+      "https://wiki.supercombo.gg/images/thumb/d/d5/SF6_A.K.I._2pp_p_hitbox.png/400px-SF6_A.K.I._2pp_p_hitbox.png"
+    ],
     "2PP > LPLK": [
       "https://wiki.supercombo.gg/images/thumb/7/7b/SF6_A.K.I._2pp_lplk_hitbox.png/400px-SF6_A.K.I._2pp_lplk_hitbox.png"
     ],
@@ -316,6 +323,9 @@ SF6_HITBOX_IMAGE_URLS = {
     ],
     "5LP": [
       "https://wiki.supercombo.gg/images/thumb/f/f2/SF6_Akuma_5lp_hitbox.png/400px-SF6_Akuma_5lp_hitbox.png"
+    ],
+    "5LP > 5LP > 6LK > 5HP": [
+      "https://wiki.supercombo.gg/images/a/a6/SF6_Akuma_lp_lp_6lk_hp%28ca%29_hitbox.png"
     ],
     "5MK": [
       "https://wiki.supercombo.gg/images/7/76/SF6_Akuma_5mk_hitbox.png"
@@ -534,6 +544,9 @@ SF6_HITBOX_IMAGE_URLS = {
     ],
     "5LP": [
       "https://wiki.supercombo.gg/images/thumb/1/12/SF6_Alex_5lp_hitbox.png/400px-SF6_Alex_5lp_hitbox.png"
+    ],
+    "5LPLK": [
+      "https://wiki.supercombo.gg/images/thumb/9/96/SF6_Alex_lplk_hitbox.png/400px-SF6_Alex_lplk_hitbox.png"
     ],
     "5MK": [
       "https://wiki.supercombo.gg/images/thumb/0/0f/SF6_Alex_5mk_hitbox.png/400px-SF6_Alex_5mk_hitbox.png"
@@ -893,6 +906,9 @@ SF6_HITBOX_IMAGE_URLS = {
     "3HP": [
       "https://wiki.supercombo.gg/images/thumb/6/60/SF6_Blanka_3hp_hitbox.png/400px-SF6_Blanka_3hp_hitbox.png"
     ],
+    "4 or 1KKK": [
+      "https://wiki.supercombo.gg/images/c/c7/SF6_Blanka_4kkk_hitbox.png"
+    ],
     "46HP": [
       "https://wiki.supercombo.gg/images/thumb/7/78/SF6_Blanka_46p_hitbox.png/400px-SF6_Blanka_46p_hitbox.png"
     ],
@@ -940,6 +956,23 @@ SF6_HITBOX_IMAGE_URLS = {
     ],
     "5MP": [
       "https://wiki.supercombo.gg/images/thumb/2/23/SF6_Blanka_5mp_hitbox.png/400px-SF6_Blanka_5mp_hitbox.png"
+    ],
+    "6 or 3KKK": [
+      "https://wiki.supercombo.gg/images/thumb/c/ce/SF6_Blanka_6kkk_hitbox.png/400px-SF6_Blanka_6kkk_hitbox.png"
+    ],
+    "624HK": [
+      "https://wiki.supercombo.gg/images/thumb/7/7a/SF6_Blanka_63214k_hitbox.png/400px-SF6_Blanka_63214k_hitbox.png"
+    ],
+    "624KK": [
+      "https://wiki.supercombo.gg/images/thumb/b/bb/SF6_Blanka_63214kk_hitbox.png/400px-SF6_Blanka_63214kk_hitbox.png",
+      "https://wiki.supercombo.gg/images/thumb/d/d7/SF6_Blanka_63214kk_hitbox2.png/400px-SF6_Blanka_63214kk_hitbox2.png",
+      "https://wiki.supercombo.gg/images/thumb/7/7a/SF6_Blanka_63214k_hitbox.png/400px-SF6_Blanka_63214k_hitbox.png"
+    ],
+    "624LK": [
+      "https://wiki.supercombo.gg/images/thumb/7/7a/SF6_Blanka_63214k_hitbox.png/400px-SF6_Blanka_63214k_hitbox.png"
+    ],
+    "624MK": [
+      "https://wiki.supercombo.gg/images/thumb/7/7a/SF6_Blanka_63214k_hitbox.png/400px-SF6_Blanka_63214k_hitbox.png"
     ],
     "6HP": [
       "https://wiki.supercombo.gg/images/thumb/a/ab/SF6_Blanka_6hp_hitbox_1.png/400px-SF6_Blanka_6hp_hitbox_1.png",
@@ -2808,6 +2841,9 @@ SF6_HITBOX_IMAGE_URLS = {
     "2MP": [
       "https://wiki.supercombo.gg/images/3/3e/SF6_Ingrid_2mp_hitbox.png"
     ],
+    "4268KK": [
+      "https://wiki.supercombo.gg/images/b/bb/SF6_Ingrid_360kk_hitbox.png"
+    ],
     "4HP": [
       "https://wiki.supercombo.gg/images/c/c5/SF6_Ingrid_4hp_hitbox.png"
     ],
@@ -3557,6 +3593,27 @@ SF6_HITBOX_IMAGE_URLS = {
     "5HP": [
       "https://wiki.supercombo.gg/images/thumb/4/41/SF6_Ken_5hp_hitbox.png/400px-SF6_Ken_5hp_hitbox.png"
     ],
+    "5KK": [
+      "https://wiki.supercombo.gg/images/thumb/6/65/SF6_Ken_kk_hitbox.png/400px-SF6_Ken_kk_hitbox.png"
+    ],
+    "5KK > 214K": [
+      "https://wiki.supercombo.gg/images/thumb/d/dd/SF6_Ken_kk_214k_hitbox.png/400px-SF6_Ken_kk_214k_hitbox.png"
+    ],
+    "5KK > 623K": [
+      "https://wiki.supercombo.gg/images/thumb/4/45/SF6_Ken_623kk_hitbox.png/400px-SF6_Ken_623kk_hitbox.png"
+    ],
+    "5KK > 623P": [
+      "https://wiki.supercombo.gg/images/thumb/d/de/SF6_Ken_kk_623p_hitbox.png/400px-SF6_Ken_kk_623p_hitbox.png"
+    ],
+    "5KK > HK": [
+      "https://wiki.supercombo.gg/images/thumb/0/0b/SF6_Ken_kk_hk_hitbox.png/400px-SF6_Ken_kk_hk_hitbox.png"
+    ],
+    "5KK > LK": [
+      "https://wiki.supercombo.gg/images/thumb/d/db/SF6_Ken_kk_lk_hitbox.png/400px-SF6_Ken_kk_lk_hitbox.png"
+    ],
+    "5KK > MK": [
+      "https://wiki.supercombo.gg/images/thumb/0/06/SF6_Ken_kk_mk_hitbox.png/400px-SF6_Ken_kk_mk_hitbox.png"
+    ],
     "5LK": [
       "https://wiki.supercombo.gg/images/7/76/SF6_Ken_5lk_hitbox.png"
     ],
@@ -3686,6 +3743,15 @@ SF6_HITBOX_IMAGE_URLS = {
     "236K": [
       "https://wiki.supercombo.gg/images/thumb/e/e8/SF6_Kimberly_236k_hitbox.png/400px-SF6_Kimberly_236k_hitbox.png"
     ],
+    "236K (proximity)": [
+      "https://wiki.supercombo.gg/images/thumb/1/18/SF6_Kimberly_236k_prox_hitbox.png/400px-SF6_Kimberly_236k_prox_hitbox.png"
+    ],
+    "236K (proximity) > K": [
+      "https://wiki.supercombo.gg/images/c/c0/SF6_Kimberly_236k_prox_k_hitbox.png"
+    ],
+    "236K (proximity) > P": [
+      "https://wiki.supercombo.gg/images/thumb/b/b1/SF6_Kimberly_236k_prox_p_hitbox.png/400px-SF6_Kimberly_236k_prox_p_hitbox.png"
+    ],
     "236K > HK": [
       "https://wiki.supercombo.gg/images/thumb/f/f4/SF6_Kimberly_236k_hk_hitbox.png/400px-SF6_Kimberly_236k_hk_hitbox.png"
     ],
@@ -3703,6 +3769,15 @@ SF6_HITBOX_IMAGE_URLS = {
     ],
     "236KK": [
       "https://wiki.supercombo.gg/images/thumb/e/e8/SF6_Kimberly_236k_hitbox.png/400px-SF6_Kimberly_236k_hitbox.png"
+    ],
+    "236KK (proximity)": [
+      "https://wiki.supercombo.gg/images/thumb/1/18/SF6_Kimberly_236k_prox_hitbox.png/400px-SF6_Kimberly_236k_prox_hitbox.png"
+    ],
+    "236KK (proximity) > K": [
+      "https://wiki.supercombo.gg/images/thumb/6/6f/SF6_Kimberly_236kk_prox_k_hitbox.png/400px-SF6_Kimberly_236kk_prox_k_hitbox.png"
+    ],
+    "236KK (proximity) > P": [
+      "https://wiki.supercombo.gg/images/thumb/b/b1/SF6_Kimberly_236k_prox_p_hitbox.png/400px-SF6_Kimberly_236k_prox_p_hitbox.png"
     ],
     "236KK > HK": [
       "https://wiki.supercombo.gg/images/thumb/d/dc/SF6_Kimberly_236kk_hk_hitbox.png/400px-SF6_Kimberly_236kk_hk_hitbox.png"
@@ -3920,6 +3995,15 @@ SF6_HITBOX_IMAGE_URLS = {
       "https://wiki.supercombo.gg/images/thumb/1/19/SF6_Lily_3hp_hitbox_2.png/400px-SF6_Lily_3hp_hitbox_2.png",
       "https://wiki.supercombo.gg/images/thumb/6/66/SF6_Lily_3hp_hitbox_3.png/400px-SF6_Lily_3hp_hitbox_3.png"
     ],
+    "4268HP": [
+      "https://wiki.supercombo.gg/images/thumb/b/bc/SF6_Lily_360hp_hitbox.png/400px-SF6_Lily_360hp_hitbox.png"
+    ],
+    "4268LP": [
+      "https://wiki.supercombo.gg/images/thumb/0/0e/SF6_Lily_360lp_hitbox.png/400px-SF6_Lily_360lp_hitbox.png"
+    ],
+    "4268MP": [
+      "https://wiki.supercombo.gg/images/thumb/4/4e/SF6_Lily_360mp_hitbox.png/400px-SF6_Lily_360mp_hitbox.png"
+    ],
     "4HP": [
       "https://wiki.supercombo.gg/images/thumb/8/84/SF6_Lily_4hp_hitbox.png/400px-SF6_Lily_4hp_hitbox.png"
     ],
@@ -3981,6 +4065,10 @@ SF6_HITBOX_IMAGE_URLS = {
     ],
     "6HPHK": [
       "https://wiki.supercombo.gg/images/thumb/6/6e/SF6_Lily_6hphk_hitbox.png/400px-SF6_Lily_6hphk_hitbox.png"
+    ],
+    "8 or 9PP": [
+      "https://wiki.supercombo.gg/images/thumb/3/35/SF6_Lily_jpp_hitbox.png/400px-SF6_Lily_jpp_hitbox.png",
+      "https://wiki.supercombo.gg/images/thumb/3/3d/SF6_Lily_jpp_hitbox2.png/400px-SF6_Lily_jpp_hitbox2.png"
     ],
     "8MP > 8MP": [
       "https://wiki.supercombo.gg/images/thumb/c/cf/SF6_Lily_jmp_jmp_hitbox.png/400px-SF6_Lily_jmp_jmp_hitbox.png"
@@ -4555,6 +4643,18 @@ SF6_HITBOX_IMAGE_URLS = {
     ],
     "5MP > MK": [
       "https://wiki.supercombo.gg/images/e/e5/SF6_Manon_5mp_mk_hitbox.png"
+    ],
+    "624HP": [
+      "https://wiki.supercombo.gg/images/thumb/6/66/SF6_Manon_63214hp_hitbox.png/400px-SF6_Manon_63214hp_hitbox.png"
+    ],
+    "624LP": [
+      "https://wiki.supercombo.gg/images/thumb/1/1f/SF6_Manon_63214lp_hitbox.png/400px-SF6_Manon_63214lp_hitbox.png"
+    ],
+    "624MP": [
+      "https://wiki.supercombo.gg/images/thumb/8/82/SF6_Manon_63214mp_hitbox.png/400px-SF6_Manon_63214mp_hitbox.png"
+    ],
+    "624PP": [
+      "https://wiki.supercombo.gg/images/thumb/1/15/SF6_Manon_63214pp_hitbox.png/400px-SF6_Manon_63214pp_hitbox.png"
     ],
     "6HPHK": [
       "https://wiki.supercombo.gg/images/8/87/SF6_Manon_6hphk_hitbox.png"
@@ -6083,6 +6183,24 @@ SF6_HITBOX_IMAGE_URLS = {
     "3MP": [
       "https://wiki.supercombo.gg/images/thumb/8/89/SF6_Zangief_3mp_hitbox.png/400px-SF6_Zangief_3mp_hitbox.png"
     ],
+    "4268HP": [
+      "https://wiki.supercombo.gg/images/thumb/1/18/SF6_Zangief_360hp_hitbox.png/400px-SF6_Zangief_360hp_hitbox.png"
+    ],
+    "4268K (air)": [
+      "https://wiki.supercombo.gg/images/thumb/c/cc/SF6_Zangief_j360k_hitbox.png/400px-SF6_Zangief_j360k_hitbox.png"
+    ],
+    "4268KK (air)": [
+      "https://wiki.supercombo.gg/images/thumb/7/78/SF6_Zangief_j360kk_hitbox.png/400px-SF6_Zangief_j360kk_hitbox.png"
+    ],
+    "4268LP": [
+      "https://wiki.supercombo.gg/images/thumb/d/d3/SF6_Zangief_360lp_hitbox.png/400px-SF6_Zangief_360lp_hitbox.png"
+    ],
+    "4268MP": [
+      "https://wiki.supercombo.gg/images/thumb/0/06/SF6_Zangief_360mp_hitbox.png/400px-SF6_Zangief_360mp_hitbox.png"
+    ],
+    "4268PP": [
+      "https://wiki.supercombo.gg/images/thumb/2/23/SF6_Zangief_360pp_hitbox.png/400px-SF6_Zangief_360pp_hitbox.png"
+    ],
     "4LPLK": [
       "https://wiki.supercombo.gg/images/thumb/2/2f/SF6_Zangief_5lplk_hitbox.png/400px-SF6_Zangief_5lplk_hitbox.png"
     ],
@@ -6121,6 +6239,20 @@ SF6_HITBOX_IMAGE_URLS = {
     ],
     "5MP > MP > MP": [
       "https://wiki.supercombo.gg/images/thumb/4/48/SF6_Zangief_5mp_mp_mp_hitbox.png/400px-SF6_Zangief_5mp_mp_mp_hitbox.png"
+    ],
+    "624K (far)": [
+      "https://wiki.supercombo.gg/images/thumb/4/47/SF6_Zangief_63214k_far_hurtbox1.png/400px-SF6_Zangief_63214k_far_hurtbox1.png",
+      "https://wiki.supercombo.gg/images/thumb/5/57/SF6_Zangief_63214k_far_hurtbox2.png/400px-SF6_Zangief_63214k_far_hurtbox2.png",
+      "https://wiki.supercombo.gg/images/thumb/7/7a/SF6_Zangief_63214k_far_hurtbox3.png/400px-SF6_Zangief_63214k_far_hurtbox3.png",
+      "https://wiki.supercombo.gg/images/thumb/7/71/SF6_Zangief_63214k_far_hitbox2.png/400px-SF6_Zangief_63214k_far_hitbox2.png",
+      "https://wiki.supercombo.gg/images/thumb/9/98/SF6_Zangief_63214k_far_hurtbox4.png/400px-SF6_Zangief_63214k_far_hurtbox4.png"
+    ],
+    "624KK (close)": [
+      "https://wiki.supercombo.gg/images/thumb/6/63/SF6_Zangief_63214k_close_hitbox.png/400px-SF6_Zangief_63214k_close_hitbox.png"
+    ],
+    "624KK (far)": [
+      "https://wiki.supercombo.gg/images/thumb/1/1a/SF6_Zangief_63214k_far_hitbox1.png/400px-SF6_Zangief_63214k_far_hitbox1.png",
+      "https://wiki.supercombo.gg/images/thumb/7/71/SF6_Zangief_63214k_far_hitbox2.png/400px-SF6_Zangief_63214k_far_hitbox2.png"
     ],
     "6HK": [
       "https://wiki.supercombo.gg/images/8/85/SF6_Zangief_6hk_hitbox.png",

@@ -262,6 +262,10 @@ def _is_quiz_embed(embed):
     return "frame data quiz" in title
 
 
+def _is_card_message(message):
+    return bool(getattr(getattr(message, "flags", None), "components_v2", False))
+
+
 def _message_looks_like_quiz_output(message):
     return any(_is_quiz_embed(embed) for embed in getattr(message, "embeds", []) or [])
 
@@ -321,7 +325,8 @@ async def _is_reply_to_suppressed_bub_message(message):
     if _message_looks_like_quiz_output(replied_message):
         return False
 
-    if getattr(replied_message, "embeds", None):
+    # SF Stats' cards and Bub's menus are Components V2 messages: no embeds, but the same rule.
+    if getattr(replied_message, "embeds", None) or _is_card_message(replied_message):
         return True
 
     if _message_looks_like_frame_data_output(replied_message):
@@ -1024,6 +1029,16 @@ def _cheap_explicit_frame_game_tags(content_lower):
     if re.search(r"\b(?:avtl|avatar\s*legends|avatar)\b", text):
         tags.add("avtl")
     return tags
+
+
+def _reads_as_frame_data(text):
+    """Frame data before SF Stats: another game's tag (SF Stats is SF6 only), or a move Bub's SF6 parser reads
+    ("yasmine boomerang", "aki coward crouch"). A bare character comparison ("ken vs ryu") stays a matchup question."""
+    text = decisions.request_text(text).lower()
+    if _cheap_explicit_frame_game_tags(text) - {"sf6"}:
+        return True
+    payload = find_moves_in_text(text)
+    return payload.get("mode") == "frame" and bool(payload.get("explicit_move_attempt") or not payload.get("wants_comparison"))
 
 
 def _selected_frame_parser_subset(content_lower, exact_matches):
@@ -1745,6 +1760,8 @@ async def on_message(message):
 async def _handle_message(message):
     # ignore bot msgs
     if message.author == client.user:
+        # The web app posts its reports of misread and failed requests as this bot: copy them to the error channel.
+        await sfstats_bridge.copy_web_app_report(message, client)
         return
 
     if not _DATA_LOADED:
@@ -1763,7 +1780,8 @@ async def _handle_message(message):
     # web app's Decisions call assigns to it. Everything else, and any failure, stays with Bub.
     # Rendering for SF Stats: the question already came from SF Stats, and only frame data answers.
     rendering = render_server.rendering()
-    if not rendering and not frame_resolver.resolving() and await sfstats_bridge.claim_message(message, client):
+    if not rendering and not frame_resolver.resolving() and await sfstats_bridge.claim_message(
+            message, client, reads_as_frame_data=_reads_as_frame_data):
         return
 
     directly_mentions_bot = message_directly_mentions_bot(message)

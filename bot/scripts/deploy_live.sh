@@ -11,15 +11,14 @@ STAGE_DIR=${BUB_DEPLOY_STAGE_DIR:-$LIVE_DIR/.deploy-stage}
 EXCLUDES=$ROOT/.deployignore
 DRY_RUN=0
 INCLUDE_WORKBOOKS=0
-INCLUDE_USF4_WORKBOOK=0
-INCLUDE_AVTL_WORKBOOK=0
-INCLUDE_GGST_WORKBOOK=0
+# One workbook name per line, from the --include-*-workbook options.
+SELECTED_WORKBOOKS=""
 INCLUDE_SF6_GIFS=0
 NO_RESTART=0
 
 usage() {
     cat <<'EOF'
-Usage: scripts/deploy_live.sh [--dry-run] [--include-workbooks] [--include-usf4-workbook] [--include-avtl-workbook] [--include-ggst-workbook] [--include-sf6-gifs] [--no-restart]
+Usage: scripts/deploy_live.sh [--dry-run] [--include-workbooks] [--include-usf4-workbook] [--include-avtl-workbook] [--include-ggst-workbook] [--include-2xko-workbook] [--include-cotw-workbook] [--include-sf6-gifs] [--no-restart]
 
 Stages and verifies the current Bub tree, synchronizes deployable changes to
 the live Fedora service, and restarts Bub only when live files changed.
@@ -29,18 +28,28 @@ the live Fedora service, and restarts Bub only when live files changed.
   --include-usf4-workbook  Include only USFIV Frame Data.ods
   --include-avtl-workbook  Include only AVTL Frame Data.ods
   --include-ggst-workbook  Include only GGST Frame Data.ods
+  --include-2xko-workbook  Include only 2XKO Frame Data.ods
+  --include-cotw-workbook  Include only COTW Frame Data.ods
+                       The --include-*-workbook options combine; other workbooks stay untouched
   --include-sf6-gifs   Add local SF6 GIFs without deleting legacy media
   --no-restart         Apply files but leave the current process running
 EOF
+}
+
+add_workbook() {
+    SELECTED_WORKBOOKS="$SELECTED_WORKBOOKS$1
+"
 }
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --dry-run) DRY_RUN=1 ;;
         --include-workbooks) INCLUDE_WORKBOOKS=1 ;;
-        --include-usf4-workbook) INCLUDE_USF4_WORKBOOK=1 ;;
-        --include-avtl-workbook) INCLUDE_AVTL_WORKBOOK=1 ;;
-        --include-ggst-workbook) INCLUDE_GGST_WORKBOOK=1 ;;
+        --include-usf4-workbook) add_workbook "USFIV Frame Data.ods" ;;
+        --include-avtl-workbook) add_workbook "AVTL Frame Data.ods" ;;
+        --include-ggst-workbook) add_workbook "GGST Frame Data.ods" ;;
+        --include-2xko-workbook) add_workbook "2XKO Frame Data.ods" ;;
+        --include-cotw-workbook) add_workbook "COTW Frame Data.ods" ;;
         --include-sf6-gifs) INCLUDE_SF6_GIFS=1 ;;
         --no-restart) NO_RESTART=1 ;;
         -h|--help) usage; exit 0 ;;
@@ -92,15 +101,14 @@ set -- \
     --itemize-changes \
     --out-format=%i\ %n%L \
     --exclude-from="$EXCLUDES"
-if [ "$INCLUDE_WORKBOOKS" -eq 1 ]; then
-    :
-elif [ "$INCLUDE_USF4_WORKBOOK" -eq 1 ]; then
-    set -- "$@" "--include=USFIV Frame Data.ods" "--exclude=*.ods"
-elif [ "$INCLUDE_AVTL_WORKBOOK" -eq 1 ]; then
-    set -- "$@" "--include=AVTL Frame Data.ods" "--exclude=*.ods"
-elif [ "$INCLUDE_GGST_WORKBOOK" -eq 1 ]; then
-    set -- "$@" "--include=GGST Frame Data.ods" "--exclude=*.ods"
-else
+if [ "$INCLUDE_WORKBOOKS" -ne 1 ]; then
+    while IFS= read -r workbook; do
+        if [ -n "$workbook" ]; then
+            set -- "$@" "--include=$workbook"
+        fi
+    done <<EOF
+$SELECTED_WORKBOOKS
+EOF
     set -- "$@" "--exclude=*.ods"
 fi
 if [ "$DRY_RUN" -eq 1 ]; then
@@ -147,15 +155,16 @@ if [ "$INCLUDE_SF6_GIFS" -eq 1 ]; then
     remote "'$LIVE_DIR/.venv/bin/python' -c 'from pathlib import Path; files=list(Path(\"$STAGE_DIR/sf6frames/files\").glob(\"*/*.gif\")); assert files; assert all(path.read_bytes()[:6] in {b\"GIF87a\", b\"GIF89a\"} for path in files)'"
 fi
 
-workbook_filters="--exclude=*.ods"
-if [ "$INCLUDE_WORKBOOKS" -eq 1 ]; then
-    workbook_filters=""
-elif [ "$INCLUDE_USF4_WORKBOOK" -eq 1 ]; then
-    workbook_filters="--include='USFIV Frame Data.ods' --exclude='*.ods'"
-elif [ "$INCLUDE_AVTL_WORKBOOK" -eq 1 ]; then
-    workbook_filters="--include='AVTL Frame Data.ods' --exclude='*.ods'"
-elif [ "$INCLUDE_GGST_WORKBOOK" -eq 1 ]; then
-    workbook_filters="--include='GGST Frame Data.ods' --exclude='*.ods'"
+workbook_filters=""
+if [ "$INCLUDE_WORKBOOKS" -ne 1 ]; then
+    while IFS= read -r workbook; do
+        if [ -n "$workbook" ]; then
+            workbook_filters="$workbook_filters --include='$workbook'"
+        fi
+    done <<EOF
+$SELECTED_WORKBOOKS
+EOF
+    workbook_filters="$workbook_filters --exclude='*.ods'"
 fi
 live_changes=$(remote "rsync -aHn --omit-dir-times --delete-delay --itemize-changes --out-format='%i %n%L' --exclude-from='$STAGE_DIR/.deployignore' $workbook_filters '$STAGE_DIR/' '$LIVE_DIR/'")
 media_live_changes=""
