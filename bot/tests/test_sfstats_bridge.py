@@ -57,7 +57,7 @@ class FakeSession:
 class CommandDefinitionTests(unittest.TestCase):
     def test_definitions_exported_from_the_web_app_load(self):
         names = {command["name"] for command in sfstats_bridge.COMMANDS}
-        self.assertEqual(16, len(sfstats_bridge.COMMANDS))
+        self.assertEqual(19, len(sfstats_bridge.COMMANDS))
         self.assertTrue({"profile", "vs", "leaderboard", "setup", "SF Stats profile", "Compare with me"} <= names)
 
     def test_bub_and_sfstats_command_names_do_not_collide(self):
@@ -190,7 +190,7 @@ class TreeErrorFilterTests(unittest.IsolatedAsyncioTestCase):
 class RegistrationTests(unittest.IsolatedAsyncioTestCase):
     def test_guild_payload_drops_global_only_fields(self):
         payload = sfstats_bridge.guild_command_payload()
-        self.assertEqual(16, len(payload))
+        self.assertEqual(19, len(payload))
         self.assertFalse(any("integration_types" in c or "contexts" in c for c in payload))
         setup = next(c for c in payload if c["name"] == "setup")
         self.assertEqual("32", setup["default_member_permissions"])
@@ -201,10 +201,10 @@ class RegistrationTests(unittest.IsolatedAsyncioTestCase):
         merged = sfstats_bridge.merge_global_commands(bub, config=GLOBAL)
         self.assertEqual(bub[0], merged[0])
         self.assertEqual(1, sum(1 for c in merged if c["name"] == "help"), "a colliding SF Stats command is skipped")
-        self.assertEqual(len(bub) + 15, len(merged))
+        self.assertEqual(len(bub) + 18, len(merged))
 
     async def test_test_guilds_get_commands_while_porting_and_none_otherwise(self):
-        for config, expected_count in ((ENABLED, 16), (GLOBAL, 0), (DISABLED, 0)):
+        for config, expected_count in ((ENABLED, 19), (GLOBAL, 0), (DISABLED, 0)):
             with self.subTest(global_commands=config.global_commands, enabled=config.enabled):
                 session = FakeSession()
                 results = await sfstats_bridge.sync_guild_commands("123", "bot-token", session=session, config=config)

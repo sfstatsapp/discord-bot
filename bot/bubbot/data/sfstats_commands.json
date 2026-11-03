@@ -156,6 +156,21 @@
               "value": "s"
             }
           ]
+        },
+        {
+          "name": "controls",
+          "description": "Modern or Classic players only",
+          "type": 3,
+          "choices": [
+            {
+              "name": "Modern",
+              "value": "modern"
+            },
+            {
+              "name": "Classic",
+              "value": "classic"
+            }
+          ]
         }
       ],
       "integration_types": [
@@ -186,6 +201,21 @@
           "type": 3,
           "autocomplete": true,
           "max_length": 80
+        },
+        {
+          "name": "controls",
+          "description": "Modern or Classic players only",
+          "type": 3,
+          "choices": [
+            {
+              "name": "Modern",
+              "value": "modern"
+            },
+            {
+              "name": "Classic",
+              "value": "classic"
+            }
+          ]
         }
       ],
       "integration_types": [
@@ -208,6 +238,66 @@
           "description": "Character",
           "type": 3,
           "required": true,
+          "autocomplete": true,
+          "max_length": 40
+        }
+      ],
+      "integration_types": [
+        0,
+        1
+      ],
+      "contexts": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "type": 1,
+      "name": "pro-leaderboard",
+      "description": "The best SF6 pros right now: tier, main and best recent result",
+      "integration_types": [
+        0,
+        1
+      ],
+      "contexts": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "type": 1,
+      "name": "top-mains",
+      "description": "The five best players of a character",
+      "options": [
+        {
+          "name": "character",
+          "description": "Character",
+          "type": 3,
+          "autocomplete": true,
+          "max_length": 40
+        }
+      ],
+      "integration_types": [
+        0,
+        1
+      ],
+      "contexts": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "type": 1,
+      "name": "best-matches",
+      "description": "The best sets of the week between top players, with replay codes",
+      "options": [
+        {
+          "name": "character",
+          "description": "Only sets with this character",
+          "type": 3,
           "autocomplete": true,
           "max_length": 40
         }
