@@ -31,6 +31,10 @@ MAX_CONTENT = 600
 DISCORD_API = "https://discord.com/api/v10"
 # The maintainers' report channel, shared with Bub's failed-prompt reports.
 DEFAULT_REPORT_CHANNEL = "1563332693423431900"
+# Where the web app posts its own reports of misread, refused and failed requests (reportChannel() in
+# src/lib/discord/messages.ts). It posts them as this bot, so the bot sees them and copies them to the report channel.
+DEFAULT_WEB_APP_REPORT_CHANNEL = "1563301451969724567"
+WEB_APP_REPORT_PREFIX = "**SF Stats · "
 REPORT_INTERVAL_SECONDS = 60.0
 # 0 is a plain message and 19 a reply; joins, pins and other system messages are never requests.
 USER_MESSAGE_TYPES = (0, 19)
@@ -146,6 +150,14 @@ def report_channel():
     return DEFAULT_REPORT_CHANNEL
 
 
+def web_app_report_channel():
+    """SFSTATS_WEB_APP_REPORT_CHANNEL_ID, else the web app's default; "off" stops copying its reports."""
+    raw = os.getenv("SFSTATS_WEB_APP_REPORT_CHANNEL_ID", "").strip()
+    if raw.lower() == "off":
+        return ""
+    return raw if raw.isdigit() else DEFAULT_WEB_APP_REPORT_CHANNEL
+
+
 _last_report = {}
 
 
@@ -155,9 +167,9 @@ def _quote(text, limit):
     return "\n".join(f"> {line}" for line in text.splitlines() or [""])
 
 
-async def report_unavailable(session, kind, reason, *, message=None, token=None, now=None):
-    """The web app reports what it answers badly; when it can't be reached, the bot reports that.
-    At most one report per kind a minute, so an outage doesn't flood the channel."""
+async def report_unavailable(session, kind, reason, *, message=None, token=None, now=None, title="web app unavailable"):
+    """The web app reports what it answers badly; when it can't be reached, or Discord refuses what it answered, the
+    bot reports that. At most one report per kind a minute, so an outage doesn't flood the channel."""
     token = token if token is not None else os.getenv("DISCORD_TOKEN", "").strip()
     channel = report_channel()
     if not token or not channel:
@@ -166,11 +178,32 @@ async def report_unavailable(session, kind, reason, *, message=None, token=None,
     if now - _last_report.get(kind, float("-inf")) < REPORT_INTERVAL_SECONDS:
         return False
     _last_report[kind] = now
-    lines = [f"**SF Stats · web app unavailable** ({kind})", f"Reason: {reason}"]
+    lines = [f"**SF Stats · {title}** ({kind})", f"Reason: {reason}"]
     if message:
         where = f"<#{message.get('channel_id')}>" if message.get("guild_id") else "a DM"
         lines += [f"<@{(message.get('author') or {}).get('id')}> in {where}", _quote(message.get("content"), 500)]
-    payload = {"content": "\n".join(lines)[:2000], "allowed_mentions": {"parse": []}, "flags": 4}
+    return await _post_report(session, channel, "\n".join(lines), token)
+
+
+async def copy_web_app_report(session, message, *, bot_user_id, token=None):
+    """One of the web app's own reports ("**SF Stats · unsure**", "· error", ...), copied to the report channel, so
+    every SF Stats error lands there. True when copied."""
+    source, target = web_app_report_channel(), report_channel()
+    if not source or not target or source == target:
+        return False
+    if str(getattr(getattr(message, "channel", None), "id", "")) != source:
+        return False
+    if not bot_user_id or str(getattr(getattr(message, "author", None), "id", "")) != str(bot_user_id):
+        return False
+    content = str(getattr(message, "content", "") or "")
+    if not content.startswith(WEB_APP_REPORT_PREFIX):
+        return False
+    token = token if token is not None else os.getenv("DISCORD_TOKEN", "").strip()
+    return bool(token) and await _post_report(session, target, content, token)
+
+
+async def _post_report(session, channel, content, token):
+    payload = {"content": content[:2000], "allowed_mentions": {"parse": []}, "flags": 4}
     headers = {"Authorization": f"Bot {token}", "Content-Type": "application/json"}
     try:
         async with session.post(f"{DISCORD_API}/channels/{channel}/messages", json=payload, headers=headers,
@@ -205,8 +238,10 @@ async def forward(payload, *, url, session, bridge, timeout_seconds):
     return result
 
 
-async def claim(message, *, bot_user_id, application_id, session, bridge, config, allowed_guild_ids=None):
-    """True when SF Stats answers this message, so Bub must skip it."""
+async def claim(message, *, bot_user_id, application_id, session, bridge, config, allowed_guild_ids=None,
+                reads_as_frame_data=None):
+    """True when SF Stats answers this message, so Bub must skip it. ``reads_as_frame_data(text)`` is Bub's own
+    check: a message it reads as frame data ("yasmine boomerang") stays with Bub whatever the route question says."""
     if not (config.enabled and config.url and bridge.enabled and bot_user_id and application_id):
         return False
     facts = snapshot(message, bot_user_id)
@@ -214,6 +249,11 @@ async def claim(message, *, bot_user_id, application_id, session, bridge, config
     if kind is None or (kind == "bub" and not config.route_bub_mentions):
         return False
     if allowed_guild_ids is not None and (not facts["guild_id"] or int(facts["guild_id"]) not in allowed_guild_ids):
+        return False
+    # Frame data comes first: a move Bub's parser reads (a FAT common name like "boomerang") never reaches
+    # the route question, which can mistake a character plus a word for SF Stats data.
+    if reads_as_frame_data is not None and reads_as_frame_data(facts["content"]):
+        print(f"[sfstats-messages] addressed={kind} route=framedata (parser)", flush=True)
         return False
     # With a Decisions key the bot routes first (bubbot.runtime.decisions): frame data stays with Bub, and
     # SF Stats data goes to the web app marked as routed, so it skips its own route question.

@@ -149,11 +149,18 @@ def normalize_move_query(query):
     return text
 
 
+def crouch_digit_keys(row):
+    """Some DreamCancel pages write crouching normals as cr.C; queries ("crouch c", "2c") mean 2C."""
+    num_cmd = str(row.get("numCmd") or "").strip()
+    return {normalize_move_token(f"2{num_cmd[3:]}")} if num_cmd.lower().startswith("cr.") else set()
+
+
 def row_match_keys(row):
     keys = set()
     for value in (row.get("numCmd"), row.get("moveName")):
         if str(value or "").strip():
             keys.add(normalize_move_token(value))
+    keys |= crouch_digit_keys(row)
     num_cmd = str(row.get("numCmd") or "").strip()
     motion_match = re.match(r"^([1-9][0-9]*)([A-Za-z]+(?:/[A-Za-z]+)+)$", num_cmd)
     if motion_match:
@@ -194,6 +201,7 @@ def find_matching_rows(char_key, move_text):
         normalize_fn=normalize_move_token,
         looks_like_fn=_cotw_notation_query,
         row_keys_fn=row_match_keys,
+        extra_row_keys_fn=crouch_digit_keys,
         dedupe_fn=unique_rows,
         post_notation=version_filter,
         post_exact=version_filter,
