@@ -13,7 +13,7 @@ import discord
 
 from bubbot.features.fg_glossary import build_glossary_definition_embed, build_glossary_link_button, normalize_glossary_term
 from bubbot.utils.choice_utils import character_choices, move_choices
-from bubbot.utils.sfstats_style import ACTION, ACTIVE, DIVIDER, CardView, card_text, embed_card_blocks, label_icon
+from bubbot.utils.sfstats_style import ACTION, ACTIVE, DIVIDER, CardView, card_text, embed_card_blocks
 
 FRAME_DATA = {}
 FRAME_STATS = {}
@@ -605,7 +605,7 @@ def _row_character_key(game, row, fallback=None):
 # Frame result helpers and compare buttons
 class StatsCompareButton(discord.ui.Button):
     def __init__(self, char_key, owner_id, stat_keys=None):
-        super().__init__(label="Compare", style=ACTION, emoji=label_icon("Compare"))
+        super().__init__(label="Compare", style=ACTION)
         self.char_key = char_key
         self.owner_id = owner_id
         self.stat_keys = tuple(stat_keys) if stat_keys else None
@@ -638,7 +638,7 @@ class StatsCompareButton(discord.ui.Button):
 
 class CompareFrameButton(discord.ui.Button):
     def __init__(self, game, row, owner_id, char_key=None):
-        super().__init__(label="Compare", style=ACTION, emoji=label_icon("Compare"))
+        super().__init__(label="Compare", style=ACTION)
         self.game = game
         self.frame_row = row
         self.owner_id = owner_id
@@ -684,7 +684,7 @@ class FrameReturnMenuButton(discord.ui.Button):
 
 class FrameBackToMovesButton(discord.ui.Button):
     def __init__(self, game, char_key):
-        super().__init__(label="Back to Moves", style=ACTION, emoji=label_icon("Back"), custom_id="frame_back_moves", row=1)
+        super().__init__(label="Back to Moves", style=ACTION, custom_id="frame_back_moves", row=1)
         self.game = game
         self.char_key = char_key
 
@@ -950,7 +950,6 @@ class CharacterSelectView(MenuView):
         elif self.stats_mode and self.compare_char_key:
             # Opened privately from a stats card: there is nothing to go back to.
             self.back_button.label = "Close"
-            self.back_button.emoji = label_icon("Close")
 
     def _add_select(self):
         start = self.page * MENU_SELECT_LIMIT
@@ -1405,7 +1404,7 @@ class StatsResultView(OwnedView):
 
 class StatsBackToCharactersButton(discord.ui.Button):
     def __init__(self, char_key, owner_id):
-        super().__init__(label="Back to Characters", style=ACTION, emoji=label_icon("Back"), custom_id="stats_back_characters", row=1)
+        super().__init__(label="Back to Characters", style=ACTION, custom_id="stats_back_characters", row=1)
         self.char_key = char_key
         self.owner_id = owner_id
 

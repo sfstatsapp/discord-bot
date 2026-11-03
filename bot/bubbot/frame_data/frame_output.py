@@ -22,6 +22,7 @@ from bubbot.runtime.config import FRAME_DATA_ERROR_CONTACT_TEXT, MISSING_HITBOX_
 from bubbot.utils.text_utils import compact_key
 from bubbot.frame_data.gif_lookup import DISCORD_ATTACHMENT_LIMIT
 from bubbot.utils.sfstats_style import ACTION, ACTIVE, BRAND, toggle_style
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 FRAME_STATS = {}
 normalize_char_name = None
@@ -315,7 +316,7 @@ def build_frame_embed(row, image_url_override=None, show_notes=False):
     if image_url:
         embed.set_image(url=image_url)
 
-    return embed
+    return strip_embed_emojis(embed)
 
 
 def iter_unique_frame_rows(rows):

@@ -91,7 +91,7 @@ except ImportError:  # Bub's own deployment only; frame data runs without it (fr
     from bubbot.runtime.frame_only import buenavista_extension
 from collections import deque
 from bubbot.features.failure_card import FailureCard
-from bubbot.utils.sfstats_style import ACTION, CardView, card_text, label_icon
+from bubbot.utils.sfstats_style import ACTION, CardView, card_text
 from bubbot.runtime import decisions, frame_rankings, frame_resolver, render_server, sfstats_bridge
 from bubbot.runtime.slash_commands import register_slash_commands
 from bubbot.runtime.startup import handle_ready
@@ -849,7 +849,7 @@ class PropertyValueView(discord.ui.View):
 
 class PropertyCompareButton(discord.ui.Button):
     def __init__(self):
-        super().__init__(label="Compare", style=ACTION, emoji=label_icon("Compare"))
+        super().__init__(label="Compare", style=ACTION)
 
     async def callback(self, interaction: discord.Interaction):
         parent = self.view

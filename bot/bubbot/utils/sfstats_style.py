@@ -3,8 +3,8 @@
 Menus are Components V2 cards (``CardView``): one container with SF Stats' near-black accent, a
 ``##`` heading, short lines and a small ``-#`` footer, with the controls below it. Results (frame
 data, stats, combos, glossary answers) stay embeds so SF Stats' frame-data helper can still post
-them; they take the same accent. Buttons are grey, the active tab or toggle is blue, and icons are
-the application's own ``sf_*`` emojis (uploaded by scripts/sync-discord-emojis.mjs).
+them; they take the same accent. Buttons are grey, the active tab or toggle is blue, and labels are
+plain text: Bub's cards carry no emoji.
 
 A Components V2 message can never become an embed again, so a menu and a result never edit into
 each other: picking from a menu posts the result as a new message, and a result's buttons open
@@ -18,47 +18,6 @@ ACTION = discord.ButtonStyle.secondary
 ACTIVE = discord.ButtonStyle.primary
 # Splits a card into blocks with a thin line between them, like ui.ts divider().
 DIVIDER = object()
-
-# Unicode stand-ins for icons the application hasn't uploaded, as in emoji.ts.
-FALLBACK = {
-    "win": "🟩", "loss": "🟥", "draw": "⬜", "play": "▶️", "capture": "🎥", "live": "🔴", "queued": "⏳",
-    "ready": "▶️", "failed": "⚠️", "idle": "⚪", "bell": "🔔", "bell_off": "🔕", "refresh": "🔄", "versus": "⚔️",
-    "player": "👤", "trophy": "🏆", "gold": "🥇", "silver": "🥈", "bronze": "🥉", "verified": "✅", "warning": "⚠️",
-    "up": "▲", "down": "▼", "back": "◀️", "next": "▶️", "link": "🔗", "guide": "📖", "megaphone": "📣",
-    "share": "📣", "globe": "🌍", "server": "🏠", "you": "★", "close": "✖️", "chart": "📈", "film": "🎬",
-}
-_icon_ids = {}
-
-
-async def load_icons(client):
-    """Read the application's sf_* emojis once after login; until then, and on failure, icons are Unicode."""
-    try:
-        emojis = await client.fetch_application_emojis()
-    except Exception as error:
-        print(f"[sfstats-style] Icons not loaded, using Unicode: {type(error).__name__}", flush=True)
-        return
-    _icon_ids.clear()
-    _icon_ids.update({emoji.name: emoji.id for emoji in emojis if emoji.name.startswith("sf_")})
-    print(f"[sfstats-style] Loaded {len(_icon_ids)} icons", flush=True)
-
-
-def icon(key):
-    """A button or option emoji: the uploaded sf_<key>, else its Unicode stand-in."""
-    emoji_id = _icon_ids.get(f"sf_{key}")
-    return discord.PartialEmoji(name=f"sf_{key}", id=emoji_id) if emoji_id else FALLBACK.get(key)
-
-
-# Icons by what a button says, so every menu labels the same actions the same way.
-_LABEL_ICONS = (
-    ("Back", "back"), ("Previous", "back"), ("Next", "next"), ("Readme", "guide"), ("Compare", "versus"),
-    ("Quiz", "trophy"), ("Stats", "chart"), ("Close", "close"), ("Report", "warning"),
-)
-
-
-def label_icon(label):
-    """The icon for a button label ("Back to Moves" → back), or None."""
-    text = str(label or "")
-    return next((icon(key) for prefix, key in _LABEL_ICONS if text.startswith(prefix)), None)
 
 
 def toggle_style(active):
@@ -184,8 +143,5 @@ class CardView(discord.ui.LayoutView):
                 budget -= len(text)
                 parts.append(discord.ui.TextDisplay(text))
         super().add_item(discord.ui.Container(*(parts or [discord.ui.TextDisplay("​")]), accent_colour=BRAND))
-        for item in self._controls:
-            if isinstance(item, discord.ui.Button) and item.emoji is None and not item.url:
-                item.emoji = label_icon(item.label)
         for row in _control_rows(self._controls):
             super().add_item(discord.ui.ActionRow(*row))

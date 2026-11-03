@@ -18,6 +18,7 @@ from bubbot.utils.notation_match_utils import find_rows_by_notation_prefix, look
 from bubbot.utils.row_utils import unique_rows
 from bubbot.utils.text_utils import compact_key, correct_alias_typos, normalize_query_terms, query_suffix_candidates, strip_noise_words, strip_query_terms
 from bubbot.utils.sfstats_style import ACTION, BRAND, toggle_style
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 
 USFIV_FRAME_DATA_FILE = "USFIV Frame Data.ods"
@@ -410,7 +411,7 @@ def build_frame_embed(row, show_notes=False):
     image_url = get_move_image_url(row)
     if image_url:
         embed.set_image(url=image_url)
-    return embed
+    return strip_embed_emojis(embed)
 
 
 class USFIVNotesButton(discord.ui.Button):

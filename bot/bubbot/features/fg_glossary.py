@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 import discord
 from bubbot.utils.sfstats_style import BRAND
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 
 GLOSSARY_HOME_URL = "https://glossary.infil.net/"
@@ -120,7 +121,7 @@ def build_glossary_embed(term=None):
     embed = discord.Embed(title=title, description=description, url=url, colour=BRAND)
     embed.add_field(name="Link", value=url, inline=False)
     embed.set_footer(text="Source: glossary.infil.net")
-    return embed
+    return strip_embed_emojis(embed)
 
 
 def build_glossary_definition_embed(term=None):
@@ -131,7 +132,7 @@ def build_glossary_definition_embed(term=None):
     if not item:
         embed = build_glossary_embed(normalized)
         embed.add_field(name="Definition", value="No exact glossary entry was found. Use the link to search the glossary site.", inline=False)
-        return embed
+        return strip_embed_emojis(embed)
 
     title = str(item.get("term", "") or normalized).strip()
     definition = _truncate(_clean_definition_text(item.get("def", "")), 3500)
@@ -145,7 +146,7 @@ def build_glossary_definition_embed(term=None):
         embed.add_field(name="Japanese", value=_truncate(jp, 900), inline=False)
     embed.add_field(name="Link", value=url, inline=False)
     embed.set_footer(text="Source: glossary.infil.net")
-    return embed
+    return strip_embed_emojis(embed)
 
 
 def build_glossary_link_view(term=None):

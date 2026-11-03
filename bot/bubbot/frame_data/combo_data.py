@@ -11,7 +11,8 @@ import pandas as pd
 from bubbot.utils.character_lookup import find_alias_positions_in_text, resolve_alias_key
 from bubbot.utils.choice_utils import character_choices
 from bubbot.utils.discord_formatting import add_embed_field, clean_value, truncate_value
-from bubbot.utils.sfstats_style import ACTION, BRAND, label_icon
+from bubbot.utils.sfstats_style import ACTION, BRAND
+from bubbot.utils.emoji_text import strip_embed_emojis
 from bubbot.utils.text_utils import compact_key, strip_noise_words
 
 SF6_COMBOS_FILE = "SF6 Combos.ods"
@@ -727,10 +728,12 @@ def build_combo_pages(game, char_key, rows, *, section=None, subsection=None, gr
 
     if not rows:
         return [
-            discord.Embed(
-                title=truncate_value(base_title, 256),
-                description=truncate_value(description or "No combos found for that filter.", 4096),
-                colour=BRAND,
+            strip_embed_emojis(
+                discord.Embed(
+                    title=truncate_value(base_title, 256),
+                    description=truncate_value(description or "No combos found for that filter.", 4096),
+                    colour=BRAND,
+                )
             )
         ]
 
@@ -854,7 +857,7 @@ class ComboListView(discord.ui.View):
 
 class ComboListPreviousButton(discord.ui.Button):
     def __init__(self):
-        super().__init__(label="Previous", style=ACTION, emoji=label_icon("Previous"), row=0)
+        super().__init__(label="Previous", style=ACTION, row=0)
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
@@ -868,7 +871,7 @@ class ComboListPreviousButton(discord.ui.Button):
 
 class ComboListNextButton(discord.ui.Button):
     def __init__(self):
-        super().__init__(label="Next", style=ACTION, emoji=label_icon("Next"), row=0)
+        super().__init__(label="Next", style=ACTION, row=0)
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
@@ -884,7 +887,7 @@ class ComboListBackButton(discord.ui.Button):
     """The list is a result (an embed), so the menu it came from opens as a new private card."""
 
     def __init__(self):
-        super().__init__(label="Back", style=ACTION, emoji=label_icon("Back"), row=1)
+        super().__init__(label="Back", style=ACTION, row=1)
 
     async def callback(self, interaction: discord.Interaction):
         from bubbot.features import menu_system

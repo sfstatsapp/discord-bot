@@ -10,6 +10,7 @@ import re
 
 import discord
 from bubbot.utils.sfstats_style import ACTION, toggle_style
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 
 # Persona hooks (default stubs; buenavista may override)
@@ -490,7 +491,7 @@ def build_quiz_frame_embed(row, mode="hard", show_notes=False, game="sf6"):
         censored_footer = _quiz_censor_character_names(footer_text, game=game_key)
         embed.set_footer(text=truncate_embed_value(censored_footer, 2048))
 
-    return embed
+    return strip_embed_emojis(embed)
 
 
 def _quiz_row_has_notes(row, game="sf6"):

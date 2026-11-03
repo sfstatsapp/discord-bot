@@ -15,7 +15,7 @@ from bubbot.utils.response_log import (
     build_log_record,
     log_and_notify_owner,
 )
-from bubbot.utils.sfstats_style import ACTION, label_icon
+from bubbot.utils.sfstats_style import ACTION
 
 
 # Discord modal and Report Issue button
@@ -86,7 +86,6 @@ class FailedPromptReportButton(discord.ui.Button):
         super().__init__(
             label="Report Issue",
             style=ACTION,
-            emoji=label_icon("Report"),
             custom_id="bub_failed_prompt_report",
         )
         self.report_context = dict(report_context or {})

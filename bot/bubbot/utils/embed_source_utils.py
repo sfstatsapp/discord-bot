@@ -17,6 +17,7 @@ from bubbot.data.game_source_info import (
     source_key_for_game,
 )
 from bubbot.utils.discord_formatting import truncate_value
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 
 def _resolve_source(game: str, *, kind: str) -> GameSourceInfo:
@@ -61,6 +62,7 @@ def apply_game_source_footer(
     kind: str = "frame",
     prefer_attachment_icon: bool = True,
 ) -> discord.Embed:
+    strip_embed_emojis(embed)
     source = _resolve_source(game, kind=kind)
     existing = ""
     if embed.footer and embed.footer.text:
