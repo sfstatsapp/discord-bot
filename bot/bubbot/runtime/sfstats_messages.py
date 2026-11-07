@@ -257,7 +257,9 @@ async def claim(message, *, bot_user_id, application_id, session, bridge, config
         return False
     # With a Decisions key the bot routes first (bubbot.runtime.decisions): frame data stays with Bub, and
     # SF Stats data goes to the web app marked as routed, so it skips its own route question.
-    route = await decisions.route(facts["content"], session=session) if decisions.enabled() else None
+    # People mentioned besides the bots ("@sfstats @friend viper") make it a question about a player.
+    players = len(set(re.findall(r"<@!?(\d{17,20})>", facts["content"])) - config.mention_ids - {str(bot_user_id)})
+    route = await decisions.route(facts["content"], session=session, players=players) if decisions.enabled() else None
     if route == "framedata":
         print(f"[sfstats-messages] addressed={kind} route=framedata (bot)", flush=True)
         return False

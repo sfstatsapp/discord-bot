@@ -147,6 +147,18 @@ class ClaimTests(unittest.TestCase):
         self.assertEqual(session.calls[0]["timeout"], 2.5, "Bub's mentions don't wait long")
         self.assertFalse(claim(mention, FakeSession(FakeResponse(200, {"route": "bub", "handled": False}))))
 
+    def test_a_player_and_a_character_go_to_sf_stats_as_routed(self):
+        """"my viper", "@friend this guys viper": decided locally (no model call), sent to SF Stats as routed."""
+        friend = "222222222222222222"
+        decide = patch.object(sfstats_messages.decisions, "decide", side_effect=AssertionError("asked the model"))
+        with patch.object(sfstats_messages.decisions, "enabled", return_value=True), decide:
+            for msg in (message(f"<@{BUB}> My Viper", mentions=[BUB]),
+                        message(f"<@{SFSTATS_USER}> <@{friend}> this guys viper", mentions=[SFSTATS_USER, friend])):
+                session = FakeSession(FakeResponse(200, {"route": "sfstats", "handled": True}))
+                with self.subTest(content=msg.content):
+                    self.assertTrue(claim(msg, session, config=ROUTING))
+                    self.assertEqual(session.calls[0]["json"]["routed"], "sfstats")
+
     def test_bub_mentions_stay_with_bub_unless_routing_is_on(self):
         session = FakeSession()
         self.assertFalse(claim(message(f"<@{BUB}> best ryu", mentions=[BUB]), session, config=CONFIG))
