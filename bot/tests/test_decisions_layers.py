@@ -67,6 +67,10 @@ class LocalRouteTests(unittest.TestCase):
             "server ladder pls": "sfstats",
             "chun lee best poke button": None,  # both: ask
             "<@1556366213784010792> my rank": "sfstats",
+            # A player's stats as one character: the speaker's own, never Bub's character stats.
+            "<@1556366213784010792> My Viper": "sfstats",
+            "my ryu stats": "sfstats",
+            "my viper 5mp": "framedata",  # a move: still frame data
             "top 10 ken players in japan": "sfstats",
             "best ryu combo": None,          # both: ask
             "ken vs ryu": None,              # neither: ask
@@ -75,6 +79,12 @@ class LocalRouteTests(unittest.TestCase):
         for text, expected in cases.items():
             with self.subTest(text=text):
                 self.assertEqual(expected, decisions.local_route(text))
+
+    def test_a_mentioned_player_makes_it_sf_stats(self):
+        self.assertEqual("sfstats", decisions.local_route("<@444444444444444444> <@222222222222222222> this guys viper", players=1))
+        self.assertEqual("sfstats", decisions.local_route("<@444444444444444444> <@222222222222222222> viper", players=1))
+        self.assertIsNone(decisions.local_route("<@444444444444444444> this guys viper"), "no player: ask")
+        self.assertEqual("framedata", decisions.local_route("<@444444444444444444> <@222222222222222222> viper 5mp", players=1))
 
     def test_request_text_drops_markup_and_prefix(self):
         self.assertEqual("ken 5mp", decisions.request_text("<@1556366213784010792>  ken   5mp"))
