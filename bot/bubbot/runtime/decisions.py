@@ -29,9 +29,10 @@ NONE = "none"
 ROUTES = {
     "framedata": "Frame data for a fighting game (Street Fighter 6, SFV, USF4, Third Strike, Guilty Gear Strive and +R, 2XKO, "
                  "BlazBlue, City of the Wolves, Mortal Kombat 1, Avatar Legends): a move's startup, on block, on hit, hitboxes, "
-                 "gifs, combos, punishes, move inputs like 5HP, 2MK or 236LP, character stats like dash or jump speed, "
+                 "gifs, combos, punishes, move inputs like 5HP, 2MK or 236LP, a character's own stats like dash or jump speed (never a player's), "
                  "fighting game terms, quizzes, the frame data menu.",
     "sfstats": "SF Stats, the Street Fighter 6 ranked stats bot: a player's CFN profile, rank, LP or MR, main and matchups; "
+               "one player's stats as one character (\"my viper\", \"my ryu stats\", \"@someone's juri\"); "
                "leaderboards and best players by character or country; this server's leaderboard; head-to-head records between "
                "players; a character's popularity, win rate and best or worst matchups; SF6 replays and the replay capture queue; "
                "linking a Discord account to a CFN profile; what SF Stats can do.",
@@ -200,18 +201,26 @@ _SFSTATS_HINT = re.compile(
 )
 
 
-def local_route(content):
-    """"framedata" or "sfstats" when the wording alone decides, else None (ask, or let the web app decide)."""
+# A player as the subject: the speaker's own ("my viper", "my ryu stats") rather than a character's frame data.
+_PLAYER_HINT = re.compile(r"\b(?:my|mine)\b", re.IGNORECASE)
+
+
+def local_route(content, *, players=0):
+    """"framedata" or "sfstats" when the wording alone decides, else None (ask, or let the web app decide).
+    ``players``: other people mentioned in the message ("@sfstats @friend this guys viper"), never the bots."""
     text = request_text(content)
     frame, stats = bool(_FRAME_HINT.search(text)), bool(_SFSTATS_HINT.search(text))
     if frame != stats:
         return "framedata" if frame else "sfstats"
+    # About a player and nothing about moves: "my viper", "@friend's ryu" are SF Stats cards, not Bub's character stats.
+    if not frame and (players or _PLAYER_HINT.search(text)):
+        return "sfstats"
     return None
 
 
-async def route(content, *, session, config=None):
+async def route(content, *, session, config=None, players=0):
     """Layer 0 then layer 1: "framedata", "sfstats" or None (unsure, off or failing)."""
-    local = local_route(content)
+    local = local_route(content, players=players)
     if local or not enabled(config):
         return local
     questions = {"route": choice(options(ROUTES, "Neither: small talk or nothing a bot looks up.", describe=ROUTES.get),
