@@ -216,6 +216,25 @@
               "value": "classic"
             }
           ]
+        },
+        {
+          "name": "view",
+          "description": "Who climbed and dropped: top gainers and losers, and everyone's rating over time",
+          "type": 3,
+          "choices": [
+            {
+              "name": "Today",
+              "value": "day"
+            },
+            {
+              "name": "This week",
+              "value": "week"
+            },
+            {
+              "name": "This month",
+              "value": "month"
+            }
+          ]
         }
       ],
       "integration_types": [
