@@ -22,6 +22,7 @@ from bubbot.runtime.config import FRAME_DATA_ERROR_CONTACT_TEXT, MISSING_HITBOX_
 from bubbot.utils.text_utils import compact_key
 from bubbot.frame_data.gif_lookup import DISCORD_ATTACHMENT_LIMIT
 from bubbot.utils.sfstats_style import ACTION, ACTIVE, BRAND, toggle_style
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 FRAME_STATS = {}
 normalize_char_name = None
@@ -315,7 +316,7 @@ def build_frame_embed(row, image_url_override=None, show_notes=False):
     if image_url:
         embed.set_image(url=image_url)
 
-    return embed
+    return strip_embed_emojis(embed)
 
 
 def iter_unique_frame_rows(rows):
@@ -402,8 +403,15 @@ class MissingHitboxGifView(discord.ui.View):
         self.rows = list(rows or [])
         self.owner_id = owner_id
         self.on_frame_sent = on_frame_sent
-        # No Report Issue button: failed prompts reach the report channel on their own.
         self.add_item(MissingHitboxGifShowFramedataButton())
+        from bubbot.features.failed_prompt_report import attach_failed_prompt_report_button
+
+        attach_failed_prompt_report_button(
+            self,
+            source_message,
+            bub_response_text=MISSING_HITBOX_GIF_TEXT,
+            failure_reason=failure_reason,
+        )
 
 
 async def send_missing_hitbox_gif_reply(
@@ -426,7 +434,20 @@ async def send_missing_hitbox_gif_reply(
         )
     if reply_and_log_response:
         return await reply_and_log_response(message, MISSING_HITBOX_GIF_TEXT, "missing_hitbox_gif", view=view)
-    return await message.reply(MISSING_HITBOX_GIF_TEXT, view=view)
+    from bubbot.features.failed_prompt_report import (
+        build_failed_prompt_report_view,
+        stamp_report_context_on_sent,
+    )
+
+    if view is None:
+        view = build_failed_prompt_report_view(
+            message,
+            bub_response_text=MISSING_HITBOX_GIF_TEXT,
+            failure_reason="missing_hitbox_gif",
+        )
+    sent = await message.reply(MISSING_HITBOX_GIF_TEXT, view=view)
+    stamp_report_context_on_sent(view, sent)
+    return sent
 
 
 class FrameDataGifButton(discord.ui.Button):
@@ -605,7 +626,10 @@ class SF6NotesButton(SF6PanelToggleButton):
 
 
 async def send_character_stats_response(message, char_keys, stat_keys=None, *, client=None):
-    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+    from bubbot.features.failed_prompt_report import (
+        build_failed_prompt_report_view,
+        stamp_report_context_on_sent,
+    )
     from bubbot.utils.embed_source_utils import apply_game_source_footer, source_icon_files
 
     channel = getattr(message, "channel", message)
@@ -621,7 +645,6 @@ async def send_character_stats_response(message, char_keys, stat_keys=None, *, c
         if not stats:
             continue
         embed = apply_game_source_footer(build_character_stats_embed(char_key, stats, stat_keys), "sf6")
-        view = None
         files = source_icon_files("sf6", kind="frame")
         if owner_id:
             from bubbot.features.menu_system import StatsResultView
@@ -633,6 +656,12 @@ async def send_character_stats_response(message, char_keys, stat_keys=None, *, c
                 menu_locked=False,
                 source_message=message,
                 prompt=prompt,
+            )
+        else:
+            view = build_failed_prompt_report_view(
+                message if hasattr(message, "content") else None,
+                bub_response_text=f"{char_key} — Character Stats",
+                failure_reason="stats_response",
             )
         sent = await channel.send(embed=embed, view=view, files=files)
         stamp_report_context_on_sent(view, sent, client=client)
@@ -650,7 +679,10 @@ async def send_frame_embeds_with_views(
     prompt="",
     client=None,
 ):
-    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+    from bubbot.features.failed_prompt_report import (
+        build_failed_prompt_report_view,
+        stamp_report_context_on_sent,
+    )
     from bubbot.features.menu_system import build_frame_result_view
 
     unique_rows = iter_unique_frame_rows(rows or [])
@@ -662,7 +694,13 @@ async def send_frame_embeds_with_views(
         sent_ids = []
         for index, embed in enumerate(embed_list):
             if index >= len(unique_rows):
-                sent = await channel.send(embed=embed)
+                fallback_view = build_failed_prompt_report_view(
+                    source_message,
+                    bub_response_text=getattr(embed, "title", None) or "frame data",
+                    failure_reason="frame_data_response",
+                )
+                sent = await channel.send(embed=embed, view=fallback_view)
+                stamp_report_context_on_sent(fallback_view, sent, client=client)
                 sent_ids.append(sent.id)
                 continue
             view = build_frame_result_view(
@@ -776,7 +814,16 @@ async def send_frame_table_response(message, rows, data_text=None):
                 print(f"Frame embed attachment load failed: {file_error}", flush=True)
         except Exception as view_error:
             print(f"Frame result view build failed; sending base embed: {view_error}", flush=True)
-            view = None
+            from bubbot.features.failed_prompt_report import attach_frame_report_button
+
+            view = discord.ui.View(timeout=None)
+            attach_frame_report_button(
+                view,
+                game="sf6",
+                row=row,
+                source_message=message,
+                prompt=prompt,
+            )
             files = []
             try:
                 embed = build_frame_embed(row)

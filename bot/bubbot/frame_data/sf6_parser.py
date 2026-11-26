@@ -39,11 +39,12 @@ from bubbot.frame_data.sf6_special_prompt_rules import (
     should_skip_special_prompt_base,
 )
 from bubbot.utils.character_lookup import find_fuzzy_aliases_in_text
+from bubbot.utils.comparison_utils import SPLIT_RE, strip_comparison_terms
 from bubbot.utils.notation_match_utils import query_has_jump_motion_notation
 from bubbot.utils.text_utils import normalize_query_terms
 
 
-def find_moves_in_text(deps, text):
+def find_moves_in_text(deps, text, *, _in_comparison_split=False):
     CHARACTER_ALIASES = deps["CHARACTER_ALIASES"]
     FRAME_DATA = deps["FRAME_DATA"]
     FRAME_STATS = deps["FRAME_STATS"]
@@ -117,7 +118,7 @@ def find_moves_in_text(deps, text):
         "send", "post", "drop", "give", "link", "gif", "gifs", "hitbox", "hitboxes",
         "advantage", "counter", "pc", "ch", "range", "length", "super", "art",
         "level", "lvl", "lv", "sa1", "sa2", "sa3", "lv1", "lv2", "lv3",
-        "lvl1", "lvl2", "lvl3",
+        "lvl1", "lvl2", "lvl3", "regular",
     }
 
     def remove_token_sequence(tokens, sequence):
@@ -332,10 +333,159 @@ def find_moves_in_text(deps, text):
     tc_selected_combos = set()
     tc_base_tokens = set()
     query_has_explicit_strength = False
+    query_requires_stocked = False
+    query_requests_ca = False
     explicit_move_attempt = False
     missing_scrolls_query = False
     comparison_char_inputs = {}
-    if wants_frame_data:
+
+    def resolve_comparison_sides():
+        """Resolve each side of a vs/and comparison independently using the existing SF6 parser.
+
+        Reuses comparison_utils.SPLIT_RE / strip_comparison_terms and delegates each side back to
+        find_moves_in_text so one side's strength/OD tokens (e.g. 'jp regular vs od spike startup',
+        'jp 22p vs 22pp', 'ken hp dp vs ryu od dp') never overwrite or filter out the other side.
+        """
+        raw_sides = [part.strip() for part in SPLIT_RE.split(text_lower) if part.strip()]
+        if len(raw_sides) < 2:
+            return None
+
+        qualifier_tokens = {
+            "od", "ex", "lp", "mp", "hp", "lk", "mk", "hk",
+            "light", "medium", "heavy", "l", "m", "h",
+            "regular", "normal", "non", "nonod", "base", "meterless",
+        }
+        non_od_qualifier_re = re.compile(r"\b(?:regular|normal(?!\s+throw)|non-?od|meterless|base)\b")
+
+        def strip_char_tokens(tokens, char_key):
+            remaining = list(tokens)
+            names = [str(char_key)]
+            names.extend(
+                alias
+                for alias, canonical in CHARACTER_ALIASES.items()
+                if normalize_char_name(canonical) == normalize_char_name(char_key)
+            )
+            for seq in sorted((re.findall(r"[a-z0-9]+", name.lower()) for name in names), key=len, reverse=True):
+                if seq:
+                    remaining = remove_token_sequence(remaining, seq)
+            return remaining
+
+        def side_residual_tokens(side_text, char_key, *, strip_qualifiers=False):
+            tokens = strip_char_tokens(word_tokens(side_text), char_key)
+            stop = move_query_stop_tokens if strip_qualifiers else (move_query_stop_tokens - qualifier_tokens)
+            tokens = [tok for tok in tokens if tok not in stop and tok != "s"]
+            if strip_qualifiers:
+                tokens = [tok for tok in tokens if tok not in qualifier_tokens]
+            return tokens
+
+        def parse_side(char_key, side_text, *, drop_non_od_words=False):
+            query_body = non_od_qualifier_re.sub(" ", side_text) if drop_non_od_words else side_text
+            query_body = re.sub(r"\s+", " ", query_body).strip()
+            if not query_body:
+                return None, [], False
+            side_named = [
+                c for c in find_fuzzy_aliases_in_text(query_body, CHARACTER_ALIASES, FRAME_DATA.keys())
+                if c in mentioned_chars
+            ]
+            if char_key not in side_named:
+                query_body = f"{char_key} {query_body}".strip()
+            payload = find_moves_in_text(deps, f"{query_body} framedata", _in_comparison_split=True)
+            side_rows = list(payload.get("rows", []) or []) if payload.get("explicit_move_attempt") else []
+            side_data = str(payload.get("data", "") or "")
+            side_has_prompt = bool(
+                payload.get("explicit_move_attempt")
+                and ("Special Strength Options" in side_data or "Target Combo Options" in side_data)
+            )
+            return payload, side_rows, side_has_prompt
+
+        sides_info = []
+        last_char = mentioned_chars[0]
+        for raw_side in raw_sides:
+            side_chars = [
+                c for c in find_fuzzy_aliases_in_text(raw_side, CHARACTER_ALIASES, FRAME_DATA.keys())
+                if c in mentioned_chars
+            ]
+            if side_chars:
+                side_char = side_chars[0]
+                last_char = side_char
+            else:
+                side_char = last_char
+            side_clean = strip_comparison_terms(raw_side)
+            own_tokens = side_residual_tokens(side_clean, side_char, strip_qualifiers=False)
+            stem_tokens = side_residual_tokens(side_clean, side_char, strip_qualifiers=True)
+            payload, side_rows, side_has_prompt = parse_side(side_char, side_clean)
+            sides_info.append({
+                "char": side_char,
+                "clean": side_clean,
+                "own_tokens": own_tokens,
+                "stem_tokens": stem_tokens,
+                "payload": payload,
+                "rows": side_rows,
+                "has_prompt": side_has_prompt,
+            })
+
+        # Share a move stem across sides when one side names the move and another side only gives a
+        # strength/regular modifier or character ("jp regular vs od spike", "ryu lp vs od fireball", "ryu vs ken 5mp").
+        resolved_with_stem = [
+            entry for entry in sides_info
+            if (entry["rows"] or entry["has_prompt"]) and entry["stem_tokens"]
+        ]
+        shared_stem = " ".join(resolved_with_stem[0]["stem_tokens"]) if resolved_with_stem else ""
+        shared_full = " ".join(resolved_with_stem[0]["own_tokens"]) if resolved_with_stem else ""
+        if shared_stem:
+            for entry in sides_info:
+                is_unresolved = not entry["rows"] and not entry["has_prompt"]
+                is_qualifier_only = bool(entry["own_tokens"]) and not entry["stem_tokens"]
+                if not is_unresolved and not (len(mentioned_chars) == 1 and is_qualifier_only):
+                    continue
+                if len(mentioned_chars) == 1:
+                    inherited = shared_stem
+                else:
+                    inherited = shared_stem if entry["own_tokens"] else (shared_full or shared_stem)
+                combined_text = f"{entry['clean']} {inherited}".strip()
+                payload, side_rows, side_has_prompt = parse_side(
+                    entry["char"],
+                    combined_text,
+                    drop_non_od_words=True,
+                )
+                if side_rows or side_has_prompt:
+                    entry["payload"] = payload
+                    entry["rows"] = side_rows
+                    entry["has_prompt"] = side_has_prompt
+
+        if not all(entry["rows"] or entry["has_prompt"] for entry in sides_info):
+            return None
+
+        prompt_blocks = []
+        for entry in sides_info:
+            if entry["has_prompt"] and entry["payload"]:
+                prompt_text = str(entry["payload"].get("data", "") or "").strip()
+                if prompt_text and prompt_text not in prompt_blocks:
+                    prompt_blocks.append(prompt_text)
+        if prompt_blocks:
+            return ("prompts", prompt_blocks)
+
+        merged_rows = []
+        for entry in sides_info:
+            for row in entry["rows"]:
+                if row not in merged_rows:
+                    merged_rows.append(row)
+        if len(merged_rows) >= 2:
+            return ("rows", merged_rows)
+        return None
+
+    comparison_resolution = (
+        resolve_comparison_sides()
+        if not _in_comparison_split and wants_comparison and mentioned_chars
+        else None
+    )
+    if comparison_resolution is not None:
+        explicit_move_attempt = True
+        if comparison_resolution[0] == "rows":
+            results = comparison_resolution[1]
+        else:
+            special_prompt_blocks = comparison_resolution[1]
+    elif wants_frame_data:
         # 2. Heuristic: For each mentioned character, search for moves mentioned nearby?
         # Simpler approach: Check if any move inputs are present in the text
         # that map to these characters.

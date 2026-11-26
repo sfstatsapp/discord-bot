@@ -20,6 +20,7 @@ from bubbot.utils.discord_formatting import clean_value as shared_clean_value
 from bubbot.utils.discord_formatting import truncate_value as shared_truncate_value
 from bubbot.utils.text_utils import compact_key, contains_token_sequence, correct_alias_typos, word_tokens
 from bubbot.utils.sfstats_style import BRAND
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 
 STAT_FIELD_LABELS = {
@@ -261,7 +262,7 @@ def build_character_stats_embed(char_key, stats, stat_keys=None):
         shared_add_embed_field(embed, label, value, inline=True)
     if not fields:
         embed.description = "No matching stats were found for that query."
-    return embed
+    return strip_embed_emojis(embed)
 
 
 def build_character_stats_comparison_embed(char_key_a, stats_a, char_key_b, stats_b, stat_keys=None):
@@ -275,7 +276,7 @@ def build_character_stats_comparison_embed(char_key_a, stats_a, char_key_b, stat
     )
     if not fields_a and not fields_b:
         embed.description = "No matching stats were found for that comparison."
-        return embed
+        return strip_embed_emojis(embed)
     for label, value_a in fields_a:
         value_b = fields_b.get(label, "?")
         shared_add_embed_field(

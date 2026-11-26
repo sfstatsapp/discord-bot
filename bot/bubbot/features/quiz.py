@@ -10,6 +10,7 @@ import re
 
 import discord
 from bubbot.utils.sfstats_style import ACTION, toggle_style
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 
 # Persona hooks (default stubs; buenavista may override)
@@ -490,7 +491,7 @@ def build_quiz_frame_embed(row, mode="hard", show_notes=False, game="sf6"):
         censored_footer = _quiz_censor_character_names(footer_text, game=game_key)
         embed.set_footer(text=truncate_embed_value(censored_footer, 2048))
 
-    return embed
+    return strip_embed_emojis(embed)
 
 
 def _quiz_row_has_notes(row, game="sf6"):
@@ -550,7 +551,8 @@ class QuizGiveUpButton(discord.ui.Button):
 
         _quiz_cancel_active_timeout(channel_id)
         for item in getattr(self.view, "children", []):
-            item.disabled = True
+            if getattr(item, "custom_id", None) != "bub_failed_prompt_report":
+                item.disabled = True
         await interaction.response.edit_message(view=self.view)
 
         reply_text = _quiz_reveal_reply_text(quiz)
@@ -587,7 +589,8 @@ class QuizEndButton(discord.ui.Button):
 
         _quiz_cancel_active_timeout(channel_id)
         for item in getattr(self.view, "children", []):
-            item.disabled = True
+            if getattr(item, "custom_id", None) != "bub_failed_prompt_report":
+                item.disabled = True
         await interaction.response.edit_message(view=self.view)
 
         char_display, move_name, num_cmd = _quiz_answer_display(quiz)
@@ -610,6 +613,14 @@ class QuizQuestionView(discord.ui.View):
         self.add_item(QuizNotesButton(row, mode=mode, game=self.game))
         self.add_item(QuizGiveUpButton())
         self.add_item(QuizEndButton())
+        from bubbot.features.failed_prompt_report import attach_frame_report_button
+
+        attach_frame_report_button(
+            self,
+            game=self.game,
+            row=row,
+            failure_reason="quiz_question_response",
+        )
 
     def build_embed(self):
         return build_quiz_frame_embed(self.frame_row, mode=self.mode, show_notes=self.show_notes, game=self.game)
@@ -1606,6 +1617,9 @@ async def start_quiz(
             _quiz_cancel_active_timeout(channel_id)
             return
 
+        from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
+        stamp_report_context_on_sent(question_view, sent)
         _quiz_track_message_id(quiz_state, getattr(sent, "id", None))
         _quiz_schedule_active_timeout(channel_id, message.channel, quiz_state)
 

@@ -28,6 +28,7 @@ from bubbot.utils.notation_match_utils import (
 from bubbot.utils.row_utils import unique_rows
 from bubbot.utils.text_utils import compact_key, correct_alias_typos, normalize_query_terms, query_suffix_candidates, strip_noise_words, strip_query_terms
 from bubbot.utils.sfstats_style import ACTION, BRAND, toggle_style
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 
 MK1_MOVE_LIST_FILE = os.path.join("mk1", "move_list.json")
@@ -536,7 +537,7 @@ def build_frame_embed(row, show_notes=False):
     meta = " / ".join(part for part in (category, move_type) if part)
     if meta:
         add_embed_field(embed, "Type", meta, inline=False)
-    return embed
+    return strip_embed_emojis(embed)
 
 
 class MK1NotesButton(discord.ui.Button):

@@ -17,6 +17,7 @@ from bubbot.runtime import decisions
 from bubbot.utils.character_lookup import find_aliases_in_text
 from bubbot.utils.choice_utils import character_choices
 from bubbot.utils.sfstats_style import BRAND
+from bubbot.utils.emoji_text import strip_embed_emojis
 
 # Columns a ranking can use, with how the model should read them. A game offers the ones its table fills.
 METRICS = {
@@ -203,7 +204,7 @@ def embed(ranking):
     )
     footer = f"{filters} · " if filters else ""
     result.set_footer(text=f"{footer}From SF Stats frame data · ask for any move to see its full card")
-    return result
+    return strip_embed_emojis(result)
 
 
 async def answer(text, *, games, session, tagged=(), config=None, label=None):

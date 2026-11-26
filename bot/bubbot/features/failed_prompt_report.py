@@ -15,7 +15,7 @@ from bubbot.utils.response_log import (
     build_log_record,
     log_and_notify_owner,
 )
-from bubbot.utils.sfstats_style import ACTION, label_icon
+from bubbot.utils.sfstats_style import ACTION
 
 
 # Discord modal and Report Issue button
@@ -76,7 +76,7 @@ class FailedPromptReportModal(discord.ui.Modal, title="Report an issue"):
             client = message_router.client
         await log_and_notify_owner(client, record)
         await interaction.response.send_message(
-            "Thanks — your report was logged and sent to the maintainer.",
+            "Thanks, your report was logged and sent to the maintainer.",
             ephemeral=True,
         )
 
@@ -86,7 +86,6 @@ class FailedPromptReportButton(discord.ui.Button):
         super().__init__(
             label="Report Issue",
             style=ACTION,
-            emoji=label_icon("Report"),
             custom_id="bub_failed_prompt_report",
         )
         self.report_context = dict(report_context or {})
@@ -181,10 +180,17 @@ def build_combo_report_context(
 
 
 # Attach report button to frame/combo/menu views
+def _iter_view_items(view):
+    walk = getattr(view, "walk_children", None)
+    if callable(walk):
+        return list(walk())
+    return list(getattr(view, "children", []) or [])
+
+
 def stamp_report_context_on_sent(view, sent, client=None):
     if view is None or sent is None:
         return
-    for child in getattr(view, "children", []) or []:
+    for child in _iter_view_items(view):
         report_context = getattr(child, "report_context", None)
         if not isinstance(report_context, dict):
             continue
@@ -204,7 +210,7 @@ def attach_failed_prompt_report_button(
 ):
     if view is None:
         return None
-    for child in getattr(view, "children", []) or []:
+    for child in _iter_view_items(view):
         if getattr(child, "custom_id", None) == "bub_failed_prompt_report":
             return view
     context = report_context or build_report_context_from_message(
@@ -212,7 +218,11 @@ def attach_failed_prompt_report_button(
         bub_response_text=bub_response_text,
         failure_reason=failure_reason,
     )
-    view.add_item(FailedPromptReportButton(context))
+    button = FailedPromptReportButton(context)
+    if isinstance(view, discord.ui.LayoutView) and not hasattr(view, "_controls"):
+        view.add_item(discord.ui.ActionRow(button))
+    else:
+        view.add_item(button)
     return view
 
 

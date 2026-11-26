@@ -33,9 +33,6 @@ async def handle_ready(deps):
     reminder_task_handle = deps.get("reminder_task_handle")
     if not frame_only:
         print(f"Logged in as {client.user}")
-        from bubbot.utils.sfstats_style import load_icons
-
-        await load_icons(client)
         try:
             from bubbot.runtime.static_assets import start_static_asset_server
 

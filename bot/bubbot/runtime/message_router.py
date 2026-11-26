@@ -91,7 +91,7 @@ except ImportError:  # Bub's own deployment only; frame data runs without it (fr
     from bubbot.runtime.frame_only import buenavista_extension
 from collections import deque
 from bubbot.features.failure_card import FailureCard
-from bubbot.utils.sfstats_style import ACTION, CardView, card_text, label_icon
+from bubbot.utils.sfstats_style import ACTION, CardView, card_text
 from bubbot.runtime import decisions, frame_rankings, frame_resolver, render_server, sfstats_bridge
 from bubbot.runtime.slash_commands import register_slash_commands
 from bubbot.runtime.startup import handle_ready
@@ -128,7 +128,19 @@ async def _resolve_with_decisions_now(message):
         ranking = await frame_rankings.answer(text, games=frame_resolver.games(), session=session, tagged=tagged,
                                               label=frame_resolver.move_label)
         if ranking is not None and ranking.entries:
-            await message.reply(embed=frame_rankings.embed(ranking), mention_author=False)
+            from bubbot.features.failed_prompt_report import (
+                build_failed_prompt_report_view,
+                stamp_report_context_on_sent,
+            )
+
+            ranking_embed = frame_rankings.embed(ranking)
+            ranking_view = build_failed_prompt_report_view(
+                message,
+                bub_response_text=ranking_embed.title or "Frame ranking",
+                failure_reason="frame_ranking_response",
+            )
+            sent = await message.reply(embed=ranking_embed, view=ranking_view, mention_author=False)
+            stamp_report_context_on_sent(ranking_view, sent, client=client)
             print(f"[frame-rank] game={ranking.game.key} metric={ranking.metric} sort={ranking.sort} n={len(ranking.entries)}", flush=True)
             return True
     return await frame_resolver.resolve_and_rerun(
@@ -155,19 +167,25 @@ async def _reply_and_log_response(message, response_text, reason, **kwargs):
         if (not render_server.rendering() and decisions.local_route(text) != "framedata"
                 and await sfstats_bridge.hand_over_message(message, client)):
             return None
+    from bubbot.features.failed_prompt_report import (
+        attach_failed_prompt_report_button,
+        stamp_report_context_on_sent,
+    )
+
     view = kwargs.pop("view", None)
     if reason in FAILED_PROMPT_REASONS and view is None:
-        # The plain card, like SF Stats' notices; the report channel gets the failure either way (below).
         hint = MISSING_SCROLLS_HINT if reason in _RESOLVABLE_REASONS else None
-        sent = await message.reply(view=FailureCard(response_text, hint), **kwargs)
+        view = FailureCard(response_text, hint)
+        attach_failed_prompt_report_button(
+            view,
+            message,
+            bub_response_text=response_text,
+            failure_reason=reason,
+        )
+        sent = await message.reply(view=view, **kwargs)
     else:
         sent = await message.reply(response_text, view=view, **kwargs)
-    for child in getattr(view, "children", []) or []:
-        report_context = getattr(child, "report_context", None)
-        if isinstance(report_context, dict):
-            report_context["reply_message_id"] = getattr(sent, "id", None)
-            report_context["reply_jump_url"] = str(getattr(sent, "jump_url", "") or "")
-            report_context["client"] = client
+    stamp_report_context_on_sent(view, sent, client=client)
     try:
         log_message_and_reply(
             message,
@@ -424,7 +442,11 @@ async def maybe_handle_glossary_lookup(message, content_no_mentions, *, addresse
     term = extract_glossary_lookup_term(content_no_mentions)
     if term is None:
         return False
-    sent = await message.reply(embed=build_glossary_definition_embed(term), view=build_glossary_link_view(term))
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
+    glossary_view = build_glossary_link_view(term, source_message=message, prompt=content_no_mentions)
+    sent = await message.reply(embed=build_glossary_definition_embed(term), view=glossary_view)
+    stamp_report_context_on_sent(glossary_view, sent, client=client)
     try:
         log_message_and_reply(
             message,
@@ -807,28 +829,48 @@ def _game_key_for_frame_module(module):
     return "sf6"
 
 
-def _property_reply_view(game, rows, property_key, owner_id, content):
+def _property_reply_view(game, rows, property_key, owner_id, content, *, source_message=None, prompt=""):
     unique_rows = iter_unique_frame_rows(rows or [])
     if not unique_rows or not property_key or owner_id is None:
         return None
     char_key = menu_system._row_character_key(game, unique_rows[0])
     if not char_key:
         return None
-    return PropertyValueView(game, char_key, unique_rows, property_key, owner_id, content)
+    return PropertyValueView(
+        game,
+        char_key,
+        unique_rows,
+        property_key,
+        owner_id,
+        content,
+        source_message=source_message,
+        prompt=prompt,
+    )
 
 
 async def _send_property_value_reply(message, rows, property_key, content=None, game="sf6"):
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     property_reply = content or _format_requested_property_reply(rows, property_key, game=game)
     if not property_reply:
         return None
-    view = _property_reply_view(game, rows, property_key, getattr(message.author, "id", None), property_reply)
+    view = _property_reply_view(
+        game,
+        rows,
+        property_key,
+        getattr(message.author, "id", None),
+        property_reply,
+        source_message=message,
+        prompt=str(getattr(message, "content", "") or ""),
+    )
     sent = await message.reply(property_reply, view=view)
+    stamp_report_context_on_sent(view, sent, client=client)
     _record_frame_data_ids([sent.id])
     return sent
 
 
 class PropertyValueView(discord.ui.View):
-    def __init__(self, game, char_key, rows, property_key, owner_id, content):
+    def __init__(self, game, char_key, rows, property_key, owner_id, content, *, source_message=None, prompt=""):
         super().__init__(timeout=300)
         self.game = game
         self.char_key = char_key
@@ -837,10 +879,34 @@ class PropertyValueView(discord.ui.View):
         self.property_key = property_key
         self.owner_id = owner_id
         self.content = content
+        self.source_message = source_message
+        self.prompt = prompt
         self.add_item(PropertyCompareButton())
         self.add_item(PropertyFullFrameDataButton())
+        from bubbot.features.failed_prompt_report import (
+            attach_failed_prompt_report_button,
+            build_frame_report_context,
+        )
+
+        report_context = build_frame_report_context(
+            game=game,
+            row=self.row,
+            source_message=source_message,
+            prompt=prompt,
+            failure_reason="property_value_response",
+            bub_response_text=content,
+        )
+        attach_failed_prompt_report_button(
+            self,
+            source_message,
+            bub_response_text=content,
+            failure_reason="property_value_response",
+            report_context=report_context,
+        )
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if (interaction.data or {}).get("custom_id") == "bub_failed_prompt_report":
+            return True
         if interaction.user.id != self.owner_id:
             await interaction.response.send_message("Only the person who opened this result can control it.", ephemeral=True)
             return False
@@ -849,7 +915,7 @@ class PropertyValueView(discord.ui.View):
 
 class PropertyCompareButton(discord.ui.Button):
     def __init__(self):
-        super().__init__(label="Compare", style=ACTION, emoji=label_icon("Compare"))
+        super().__init__(label="Compare", style=ACTION)
 
     async def callback(self, interaction: discord.Interaction):
         parent = self.view
@@ -955,10 +1021,20 @@ class PropertyCompareSelect(discord.ui.Select):
         next_char_key = menu_system._row_character_key(parent.game, row, parent.char_key) or parent.char_key
         await interaction.response.edit_message(view=CardView().set_card(f"Added **{label}** to the comparison."))
         if self.view.reply is not None:
-            await self.view.reply.edit(
-                content=property_reply,
-                view=PropertyValueView(parent.game, next_char_key, next_rows, parent.property_key, parent.owner_id, property_reply),
+            from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
+            next_view = PropertyValueView(
+                parent.game,
+                next_char_key,
+                next_rows,
+                parent.property_key,
+                parent.owner_id,
+                property_reply,
+                source_message=parent.source_message,
+                prompt=parent.prompt,
             )
+            edited = await self.view.reply.edit(content=property_reply, view=next_view)
+            stamp_report_context_on_sent(next_view, edited or self.view.reply, client=client)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         self._refresh_options()

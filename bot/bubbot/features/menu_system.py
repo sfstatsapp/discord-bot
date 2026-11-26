@@ -13,7 +13,7 @@ import discord
 
 from bubbot.features.fg_glossary import build_glossary_definition_embed, build_glossary_link_button, normalize_glossary_term
 from bubbot.utils.choice_utils import character_choices, move_choices
-from bubbot.utils.sfstats_style import ACTION, ACTIVE, DIVIDER, CardView, card_text, embed_card_blocks, label_icon
+from bubbot.utils.sfstats_style import ACTION, ACTIVE, DIVIDER, CardView, card_text, embed_card_blocks
 
 FRAME_DATA = {}
 FRAME_STATS = {}
@@ -160,6 +160,8 @@ _MENU_GAME_LABELS = dict(MENU_GAMES)
 
 # Base views: owner lock for menus and the results they open
 async def _owner_allows(view, interaction):
+    if (interaction.data or {}).get("custom_id") == "bub_failed_prompt_report":
+        return True
     if not view.menu_locked or view.owner_id is None or interaction.user.id == view.owner_id:
         return True
     await interaction.response.send_message(
@@ -299,6 +301,8 @@ async def _open_game_combos_menu(interaction, game, owner_id):
 
 
 async def _post_sf6_stats(interaction, char_key, owner_id, stat_keys=None):
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     stats_row = FRAME_STATS.get(char_key)
     if not stats_row:
         await interaction.response.send_message("No stats loaded for this character.", ephemeral=True)
@@ -308,9 +312,15 @@ async def _post_sf6_stats(interaction, char_key, owner_id, stat_keys=None):
     embed = build_character_stats_embed(char_key, stats_row, stat_keys)
     view = StatsResultView(char_key, owner_id, stat_keys=stat_keys, menu_locked=True)
     await interaction.response.send_message(embed=embed, view=view)
+    try:
+        stamp_report_context_on_sent(view, await interaction.original_response())
+    except Exception:
+        pass
 
 
 async def _post_sf6_stats_compare(interaction, char_key_a, char_key_b, owner_id, stat_keys=None, *, menu_locked=True):
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     stats_a = FRAME_STATS.get(char_key_a)
     stats_b = FRAME_STATS.get(char_key_b)
     if not stats_a or not stats_b:
@@ -327,6 +337,10 @@ async def _post_sf6_stats_compare(interaction, char_key_a, char_key_b, owner_id,
         menu_locked=menu_locked,
     )
     await interaction.response.send_message(embed=embed, view=view)
+    try:
+        stamp_report_context_on_sent(view, await interaction.original_response())
+    except Exception:
+        pass
 
 
 def _ggst_character_list():
@@ -605,7 +619,7 @@ def _row_character_key(game, row, fallback=None):
 # Frame result helpers and compare buttons
 class StatsCompareButton(discord.ui.Button):
     def __init__(self, char_key, owner_id, stat_keys=None):
-        super().__init__(label="Compare", style=ACTION, emoji=label_icon("Compare"))
+        super().__init__(label="Compare", style=ACTION)
         self.char_key = char_key
         self.owner_id = owner_id
         self.stat_keys = tuple(stat_keys) if stat_keys else None
@@ -638,7 +652,7 @@ class StatsCompareButton(discord.ui.Button):
 
 class CompareFrameButton(discord.ui.Button):
     def __init__(self, game, row, owner_id, char_key=None):
-        super().__init__(label="Compare", style=ACTION, emoji=label_icon("Compare"))
+        super().__init__(label="Compare", style=ACTION)
         self.game = game
         self.frame_row = row
         self.owner_id = owner_id
@@ -684,7 +698,7 @@ class FrameReturnMenuButton(discord.ui.Button):
 
 class FrameBackToMovesButton(discord.ui.Button):
     def __init__(self, game, char_key):
-        super().__init__(label="Back to Moves", style=ACTION, emoji=label_icon("Back"), custom_id="frame_back_moves", row=1)
+        super().__init__(label="Back to Moves", style=ACTION, custom_id="frame_back_moves", row=1)
         self.game = game
         self.char_key = char_key
 
@@ -808,6 +822,23 @@ class MainMenuView(MenuView):
 class ReadmeView(MenuView):
     def __init__(self, owner_id):
         super().__init__(owner_id=owner_id, menu_locked=True, timeout=None)
+        from bubbot.features.failed_prompt_report import (
+            attach_failed_prompt_report_button,
+            build_report_context_from_message,
+        )
+
+        attach_failed_prompt_report_button(
+            self,
+            None,
+            bub_response_text="SF Stats Readme",
+            failure_reason="readme_response",
+            report_context=build_report_context_from_message(
+                None,
+                bub_response_text="SF Stats Readme",
+                failure_reason="readme_response",
+                prompt="readme",
+            ),
+        )
         self.set_card(*readme_blocks())
 
     @discord.ui.button(label="Back", style=ACTION, custom_id="readme_back")
@@ -820,6 +851,24 @@ class GlossaryMenuView(MenuView):
         super().__init__(owner_id=owner_id, menu_locked=True, timeout=None)
         self.term = normalize_glossary_term(term)
         self.add_item(build_glossary_link_button(self.term))
+        from bubbot.features.failed_prompt_report import (
+            attach_failed_prompt_report_button,
+            build_report_context_from_message,
+        )
+
+        label = f"FG Glossary: {self.term}" if self.term else "Fighting Game Glossary"
+        attach_failed_prompt_report_button(
+            self,
+            None,
+            bub_response_text=label,
+            failure_reason="fg_glossary_response",
+            report_context=build_report_context_from_message(
+                None,
+                bub_response_text=label,
+                failure_reason="fg_glossary_response",
+                prompt=self.term or "glossary",
+            ),
+        )
         self.set_card(*embed_card_blocks(build_glossary_definition_embed(self.term)))
 
     @discord.ui.button(label="Search Term", style=ACTIVE, custom_id="glossary_search", row=1)
@@ -950,7 +999,6 @@ class CharacterSelectView(MenuView):
         elif self.stats_mode and self.compare_char_key:
             # Opened privately from a stats card: there is nothing to go back to.
             self.back_button.label = "Close"
-            self.back_button.emoji = label_icon("Close")
 
     def _add_select(self):
         start = self.page * MENU_SELECT_LIMIT
@@ -1326,16 +1374,25 @@ class MoveSelect(discord.ui.Select):
             return
         row, _label = self.moves[int(raw_idx)]
         # The card is posted below and the menu stays, so another move (or one to compare) is one pick away.
+        from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
         view = build_frame_result_view(self.game, row, self.view.owner_id, self.char_key, menu_locked=True)
         await prepare_cotw_frame_view(view)
         await interaction.response.send_message(embed=view.build_embed(), view=view, files=view.initial_files())
+        try:
+            stamp_report_context_on_sent(view, await interaction.original_response())
+        except Exception:
+            pass
 
 
 async def _send_frame_result_message(channel, game, char_key, row, owner_id):
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     view = build_frame_result_view(game, row, owner_id, char_key, menu_locked=True)
     await prepare_cotw_frame_view(view)
     embed = view.build_embed()
     sent = await channel.send(embed=embed, view=view, files=view.initial_files())
+    stamp_report_context_on_sent(view, sent)
     return sent
 
 
@@ -1405,7 +1462,7 @@ class StatsResultView(OwnedView):
 
 class StatsBackToCharactersButton(discord.ui.Button):
     def __init__(self, char_key, owner_id):
-        super().__init__(label="Back to Characters", style=ACTION, emoji=label_icon("Back"), custom_id="stats_back_characters", row=1)
+        super().__init__(label="Back to Characters", style=ACTION, custom_id="stats_back_characters", row=1)
         self.char_key = char_key
         self.owner_id = owner_id
 
@@ -1771,7 +1828,13 @@ async def _post_combo_list(interaction, view, rows, *, section, subsection=None)
         subsection=subsection,
         back_to=view.back_to,
     )
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     await interaction.response.send_message(embed=pages[0], view=list_view, files=list_view.message_attachments())
+    try:
+        stamp_report_context_on_sent(list_view, await interaction.original_response())
+    except Exception:
+        pass
 
 
 class ComboSectionButton(discord.ui.Button):
