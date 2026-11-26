@@ -403,8 +403,15 @@ class MissingHitboxGifView(discord.ui.View):
         self.rows = list(rows or [])
         self.owner_id = owner_id
         self.on_frame_sent = on_frame_sent
-        # No Report Issue button: failed prompts reach the report channel on their own.
         self.add_item(MissingHitboxGifShowFramedataButton())
+        from bubbot.features.failed_prompt_report import attach_failed_prompt_report_button
+
+        attach_failed_prompt_report_button(
+            self,
+            source_message,
+            bub_response_text=MISSING_HITBOX_GIF_TEXT,
+            failure_reason=failure_reason,
+        )
 
 
 async def send_missing_hitbox_gif_reply(
@@ -427,7 +434,20 @@ async def send_missing_hitbox_gif_reply(
         )
     if reply_and_log_response:
         return await reply_and_log_response(message, MISSING_HITBOX_GIF_TEXT, "missing_hitbox_gif", view=view)
-    return await message.reply(MISSING_HITBOX_GIF_TEXT, view=view)
+    from bubbot.features.failed_prompt_report import (
+        build_failed_prompt_report_view,
+        stamp_report_context_on_sent,
+    )
+
+    if view is None:
+        view = build_failed_prompt_report_view(
+            message,
+            bub_response_text=MISSING_HITBOX_GIF_TEXT,
+            failure_reason="missing_hitbox_gif",
+        )
+    sent = await message.reply(MISSING_HITBOX_GIF_TEXT, view=view)
+    stamp_report_context_on_sent(view, sent)
+    return sent
 
 
 class FrameDataGifButton(discord.ui.Button):

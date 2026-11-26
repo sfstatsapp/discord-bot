@@ -13,17 +13,21 @@ from bubbot.runtime import frame_rankings, frame_resolver, message_router
 
 
 def _button_custom_ids(view):
+    walk = getattr(view, "walk_children", None)
+    items = list(walk()) if callable(walk) else list(getattr(view, "children", []) or [])
     return [
         getattr(item, "custom_id", None)
-        for item in getattr(view, "children", []) or []
+        for item in items
         if isinstance(item, discord.ui.Button)
     ]
 
 
 def _button_labels(view):
+    walk = getattr(view, "walk_children", None)
+    items = list(walk()) if callable(walk) else list(getattr(view, "children", []) or [])
     return [
         getattr(item, "label", None)
-        for item in getattr(view, "children", []) or []
+        for item in items
         if isinstance(item, discord.ui.Button)
     ]
 
@@ -187,6 +191,37 @@ class ReportIssueButtonCoverageTests(unittest.IsolatedAsyncioTestCase):
         page = discord.Embed(title="Ryu Combos", description="5MP > 2MK")
         view = combo_data.ComboListView("sf6", "ryu", [page], owner_id=1)
         self.assertIn("bub_failed_prompt_report", _button_custom_ids(view))
+
+    async def test_failure_card_missing_gif_readme_and_glossary_menu_include_report_issue(self):
+        row = {"char_name": "Jp", "char_key": "jp", "moveName": "Triglav", "numCmd": "22P"}
+        missing_gif = frame_output.MissingHitboxGifView([row], owner_id=1)
+        self.assertIn("bub_failed_prompt_report", _button_custom_ids(missing_gif))
+        readme = menu_system.ReadmeView(owner_id=1)
+        self.assertIn("bub_failed_prompt_report", _button_custom_ids(readme))
+        glossary_menu = menu_system.GlossaryMenuView(owner_id=1, term="oki")
+        self.assertIn("bub_failed_prompt_report", _button_custom_ids(glossary_menu))
+
+        sent_calls = []
+
+        async def reply(content=None, **kwargs):
+            sent_calls.append((content, kwargs))
+            return type("Sent", (), {"id": 99, "jump_url": "https://discord.com/channels/1/2/99"})()
+
+        msg = type("Msg", (), {"content": "<@1> jp aioushdpaiw", "reply": staticmethod(reply)})()
+        with (
+            patch.object(message_router.decisions, "enabled", lambda config=None: False),
+            patch.object(message_router.sfstats_bridge, "hand_over_message", AsyncMock(return_value=False)),
+            patch.object(message_router, "notify_owner", AsyncMock()),
+        ):
+            await message_router._reply_and_log_response(msg, message_router.MISSING_SCROLLS_TEXT, "missing_scrolls")
+        self.assertEqual(1, len(sent_calls))
+        card = sent_calls[0][1]["view"]
+        self.assertIn("bub_failed_prompt_report", _button_custom_ids(card))
+        btn = next(
+            item for item in card.walk_children()
+            if getattr(item, "custom_id", None) == "bub_failed_prompt_report"
+        )
+        self.assertEqual(99, btn.report_context["reply_message_id"])
 
 
 if __name__ == "__main__":

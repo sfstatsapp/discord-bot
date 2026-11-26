@@ -822,6 +822,23 @@ class MainMenuView(MenuView):
 class ReadmeView(MenuView):
     def __init__(self, owner_id):
         super().__init__(owner_id=owner_id, menu_locked=True, timeout=None)
+        from bubbot.features.failed_prompt_report import (
+            attach_failed_prompt_report_button,
+            build_report_context_from_message,
+        )
+
+        attach_failed_prompt_report_button(
+            self,
+            None,
+            bub_response_text="SF Stats Readme",
+            failure_reason="readme_response",
+            report_context=build_report_context_from_message(
+                None,
+                bub_response_text="SF Stats Readme",
+                failure_reason="readme_response",
+                prompt="readme",
+            ),
+        )
         self.set_card(*readme_blocks())
 
     @discord.ui.button(label="Back", style=ACTION, custom_id="readme_back")
@@ -834,6 +851,24 @@ class GlossaryMenuView(MenuView):
         super().__init__(owner_id=owner_id, menu_locked=True, timeout=None)
         self.term = normalize_glossary_term(term)
         self.add_item(build_glossary_link_button(self.term))
+        from bubbot.features.failed_prompt_report import (
+            attach_failed_prompt_report_button,
+            build_report_context_from_message,
+        )
+
+        label = f"FG Glossary: {self.term}" if self.term else "Fighting Game Glossary"
+        attach_failed_prompt_report_button(
+            self,
+            None,
+            bub_response_text=label,
+            failure_reason="fg_glossary_response",
+            report_context=build_report_context_from_message(
+                None,
+                bub_response_text=label,
+                failure_reason="fg_glossary_response",
+                prompt=self.term or "glossary",
+            ),
+        )
         self.set_card(*embed_card_blocks(build_glossary_definition_embed(self.term)))
 
     @discord.ui.button(label="Search Term", style=ACTIVE, custom_id="glossary_search", row=1)

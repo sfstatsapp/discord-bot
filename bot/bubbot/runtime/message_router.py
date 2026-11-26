@@ -167,19 +167,25 @@ async def _reply_and_log_response(message, response_text, reason, **kwargs):
         if (not render_server.rendering() and decisions.local_route(text) != "framedata"
                 and await sfstats_bridge.hand_over_message(message, client)):
             return None
+    from bubbot.features.failed_prompt_report import (
+        attach_failed_prompt_report_button,
+        stamp_report_context_on_sent,
+    )
+
     view = kwargs.pop("view", None)
     if reason in FAILED_PROMPT_REASONS and view is None:
-        # The plain card, like SF Stats' notices; the report channel gets the failure either way (below).
         hint = MISSING_SCROLLS_HINT if reason in _RESOLVABLE_REASONS else None
-        sent = await message.reply(view=FailureCard(response_text, hint), **kwargs)
+        view = FailureCard(response_text, hint)
+        attach_failed_prompt_report_button(
+            view,
+            message,
+            bub_response_text=response_text,
+            failure_reason=reason,
+        )
+        sent = await message.reply(view=view, **kwargs)
     else:
         sent = await message.reply(response_text, view=view, **kwargs)
-    for child in getattr(view, "children", []) or []:
-        report_context = getattr(child, "report_context", None)
-        if isinstance(report_context, dict):
-            report_context["reply_message_id"] = getattr(sent, "id", None)
-            report_context["reply_jump_url"] = str(getattr(sent, "jump_url", "") or "")
-            report_context["client"] = client
+    stamp_report_context_on_sent(view, sent, client=client)
     try:
         log_message_and_reply(
             message,

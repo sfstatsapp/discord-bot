@@ -605,7 +605,32 @@ def register_slash_commands(tree, deps):
 
     @tree.command(name="readme", description="Show a quick guide to SF Stats")
     async def readme_slash_command(interaction: discord.Interaction):
-        await interaction.response.send_message(view=CardView().set_card(*menu_system.readme_blocks()))
+        from bubbot.features.failed_prompt_report import (
+            attach_failed_prompt_report_button,
+            build_report_context_from_message,
+            stamp_report_context_on_sent,
+        )
+
+        view = CardView().set_card(*menu_system.readme_blocks())
+        report_context = build_report_context_from_message(
+            None,
+            bub_response_text="SF Stats Readme",
+            failure_reason="readme_response",
+            prompt="/readme",
+        )
+        attach_failed_prompt_report_button(
+            view,
+            None,
+            bub_response_text="SF Stats Readme",
+            failure_reason="readme_response",
+            report_context=report_context,
+        )
+        await interaction.response.send_message(view=view)
+        try:
+            sent = await interaction.original_response()
+            stamp_report_context_on_sent(view, sent, client=client)
+        except Exception:
+            pass
 
     @tree.command(name="glossary", description="Open Infil's Fighting Game Glossary")
     @discord.app_commands.describe(term="Optional glossary term, like safe jump or option select")
