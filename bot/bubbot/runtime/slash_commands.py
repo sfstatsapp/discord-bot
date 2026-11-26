@@ -610,7 +610,16 @@ def register_slash_commands(tree, deps):
     @tree.command(name="glossary", description="Open Infil's Fighting Game Glossary")
     @discord.app_commands.describe(term="Optional glossary term, like safe jump or option select")
     async def glossary_slash_command(interaction: discord.Interaction, term: str = None):
-        await interaction.response.send_message(embed=build_glossary_definition_embed(term), view=build_glossary_link_view(term))
+        from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
+        prompt = f"/glossary {term}".strip() if term else "/glossary"
+        view = build_glossary_link_view(term, prompt=prompt)
+        await interaction.response.send_message(embed=build_glossary_definition_embed(term), view=view)
+        try:
+            sent = await interaction.original_response()
+            stamp_report_context_on_sent(view, sent, client=client)
+        except Exception:
+            pass
 
     @tree.command(name="ggst")
     @discord.app_commands.describe(char_name="The characters name", move_name="The move name", char_state="Optional char specific states like Installs.")

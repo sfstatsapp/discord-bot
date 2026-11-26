@@ -149,9 +149,26 @@ def build_glossary_definition_embed(term=None):
     return strip_embed_emojis(embed)
 
 
-def build_glossary_link_view(term=None):
+def build_glossary_link_view(term=None, *, source_message=None, prompt=""):
+    from bubbot.features.failed_prompt_report import attach_failed_prompt_report_button, build_report_context_from_message
+
     view = discord.ui.View(timeout=None)
     view.add_item(build_glossary_link_button(term))
+    normalized = normalize_glossary_term(term)
+    label = f"FG Glossary: {normalized}" if normalized else "Fighting Game Glossary"
+    report_context = build_report_context_from_message(
+        source_message,
+        bub_response_text=label,
+        failure_reason="fg_glossary_response",
+        prompt=prompt or normalized or "glossary",
+    )
+    attach_failed_prompt_report_button(
+        view,
+        source_message,
+        bub_response_text=label,
+        failure_reason="fg_glossary_response",
+        report_context=report_context,
+    )
     return view
 
 

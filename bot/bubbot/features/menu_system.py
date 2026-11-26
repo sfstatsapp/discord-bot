@@ -160,6 +160,8 @@ _MENU_GAME_LABELS = dict(MENU_GAMES)
 
 # Base views: owner lock for menus and the results they open
 async def _owner_allows(view, interaction):
+    if (interaction.data or {}).get("custom_id") == "bub_failed_prompt_report":
+        return True
     if not view.menu_locked or view.owner_id is None or interaction.user.id == view.owner_id:
         return True
     await interaction.response.send_message(
@@ -299,6 +301,8 @@ async def _open_game_combos_menu(interaction, game, owner_id):
 
 
 async def _post_sf6_stats(interaction, char_key, owner_id, stat_keys=None):
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     stats_row = FRAME_STATS.get(char_key)
     if not stats_row:
         await interaction.response.send_message("No stats loaded for this character.", ephemeral=True)
@@ -308,9 +312,15 @@ async def _post_sf6_stats(interaction, char_key, owner_id, stat_keys=None):
     embed = build_character_stats_embed(char_key, stats_row, stat_keys)
     view = StatsResultView(char_key, owner_id, stat_keys=stat_keys, menu_locked=True)
     await interaction.response.send_message(embed=embed, view=view)
+    try:
+        stamp_report_context_on_sent(view, await interaction.original_response())
+    except Exception:
+        pass
 
 
 async def _post_sf6_stats_compare(interaction, char_key_a, char_key_b, owner_id, stat_keys=None, *, menu_locked=True):
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     stats_a = FRAME_STATS.get(char_key_a)
     stats_b = FRAME_STATS.get(char_key_b)
     if not stats_a or not stats_b:
@@ -327,6 +337,10 @@ async def _post_sf6_stats_compare(interaction, char_key_a, char_key_b, owner_id,
         menu_locked=menu_locked,
     )
     await interaction.response.send_message(embed=embed, view=view)
+    try:
+        stamp_report_context_on_sent(view, await interaction.original_response())
+    except Exception:
+        pass
 
 
 def _ggst_character_list():
@@ -1325,16 +1339,25 @@ class MoveSelect(discord.ui.Select):
             return
         row, _label = self.moves[int(raw_idx)]
         # The card is posted below and the menu stays, so another move (or one to compare) is one pick away.
+        from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
         view = build_frame_result_view(self.game, row, self.view.owner_id, self.char_key, menu_locked=True)
         await prepare_cotw_frame_view(view)
         await interaction.response.send_message(embed=view.build_embed(), view=view, files=view.initial_files())
+        try:
+            stamp_report_context_on_sent(view, await interaction.original_response())
+        except Exception:
+            pass
 
 
 async def _send_frame_result_message(channel, game, char_key, row, owner_id):
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     view = build_frame_result_view(game, row, owner_id, char_key, menu_locked=True)
     await prepare_cotw_frame_view(view)
     embed = view.build_embed()
     sent = await channel.send(embed=embed, view=view, files=view.initial_files())
+    stamp_report_context_on_sent(view, sent)
     return sent
 
 
@@ -1770,7 +1793,13 @@ async def _post_combo_list(interaction, view, rows, *, section, subsection=None)
         subsection=subsection,
         back_to=view.back_to,
     )
+    from bubbot.features.failed_prompt_report import stamp_report_context_on_sent
+
     await interaction.response.send_message(embed=pages[0], view=list_view, files=list_view.message_attachments())
+    try:
+        stamp_report_context_on_sent(list_view, await interaction.original_response())
+    except Exception:
+        pass
 
 
 class ComboSectionButton(discord.ui.Button):
