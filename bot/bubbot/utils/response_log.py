@@ -288,7 +288,7 @@ async def notify_owner(client, record: dict[str, Any]) -> bool:
             await channel.send(content, allowed_mentions=discord.AllowedMentions.none())
             delivered = True
         except Exception as exc:
-            print(f"Owner notify channel error: {exc}", flush=True)
+            print(f"Owner notify channel error (channel={channel_id}): {exc}", flush=True)
     return delivered
 
 

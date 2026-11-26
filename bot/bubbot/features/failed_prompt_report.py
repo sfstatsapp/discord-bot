@@ -76,7 +76,7 @@ class FailedPromptReportModal(discord.ui.Modal, title="Report an issue"):
             client = message_router.client
         await log_and_notify_owner(client, record)
         await interaction.response.send_message(
-            "Thanks — your report was logged and sent to the maintainer.",
+            "Thanks, your report was logged and sent to the maintainer.",
             ephemeral=True,
         )
 
