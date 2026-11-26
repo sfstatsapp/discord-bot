@@ -281,7 +281,7 @@ class FrameFallbackTests(unittest.IsolatedAsyncioTestCase):
             message_router.frame_resolver._RESOLVING.reset(token)
         self.assertEqual([], replies)
 
-    async def test_an_unread_request_gets_the_plain_card_without_buttons(self):
+    async def test_an_unread_request_gets_the_plain_card_with_report_issue_button(self):
         sent = []
 
         async def reply(content=None, **kwargs):
@@ -297,12 +297,13 @@ class FrameFallbackTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(content)
         card = kwargs["view"]
         self.assertIsInstance(card, discord.ui.LayoutView)
-        [container] = card.children
+        container = next(item for item in card.children if isinstance(item, discord.ui.Container))
         self.assertEqual(0x0B0B0B, container.accent_colour.value)
         text = container.children[0].content
         self.assertTrue(text.startswith("I couldn't find that move.\n-# Try a character and a move"), text)
         self.assertNotIn("Report Issue", text)
-        self.assertFalse([item for item in card.walk_children() if isinstance(item, discord.ui.Button)], "no buttons")
+        buttons = [item for item in card.walk_children() if isinstance(item, discord.ui.Button)]
+        self.assertEqual(["bub_failed_prompt_report"], [item.custom_id for item in buttons])
 
     async def test_other_replies_never_ask(self):
         with patch.object(message_router.frame_resolver, "resolve_and_rerun", AsyncMock(return_value=True)) as rerun:
